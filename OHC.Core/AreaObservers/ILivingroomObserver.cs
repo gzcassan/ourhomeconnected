@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace OHC.Core.RoomManagers
+namespace OHC.Core.AreaObservers
 {
-    public interface ILivingroomManager
+    public interface ILivingroomObserver
     {
     }
 }

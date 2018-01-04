@@ -9,7 +9,7 @@ using Microsoft.Extensions.Hosting;
 using OHC.MqttService;
 using OHC.Core.MySensorsGateway;
 using OHC.Core.Infrastructure;
-using OHC.Core.RoomManagers;
+using OHC.Core.AreaObservers;
 using Hangfire;
 using Hangfire.MemoryStorage;
 using Microsoft.Extensions.Logging;
@@ -21,6 +21,7 @@ using OHC.Storage.SensorData.AzureTableStorage;
 using OHC.Storage.Models;
 using OHC.Storage.Interfaces;
 using OHC.Core.Settings;
+using Microsoft.AspNetCore.HttpOverrides;
 
 namespace OHC.Server
 {
@@ -73,16 +74,16 @@ namespace OHC.Server
             services.AddSingleton<IHostedService>(provider => gateway);
             services.AddSingleton<IMySensorsGateway>(provider => gateway);
 
-            var bm = new BathroomManager(sp.GetRequiredService<IEventAggregator>(), sp.GetRequiredService<ILogger<BathroomManager>>());
-            services.AddSingleton<IBathroomManager>(provider => bm);
+            var bm = new BathroomObserver(sp.GetRequiredService<IEventAggregator>(), sp.GetRequiredService<ILogger<BathroomObserver>>());
+            services.AddSingleton<IBathroomObserver>(provider => bm);
 
-            var lr = new LivingroomManager(
+            var lr = new LivingroomObserver(
                 new PhilipsHueSettings(
                     host: configuration["PhilipsHue:Host"],
                     key: configuration["PhilipsHue:Key"],
                     sunsetScene: configuration["PhilipsHue:SunsetScene"]),
-                sp.GetRequiredService<IEventAggregator>(), sp.GetRequiredService<ILogger<LivingroomManager>>());
-            services.AddSingleton<ILivingroomManager>(provider => lr);
+                sp.GetRequiredService<IEventAggregator>(), sp.GetRequiredService<ILogger<LivingroomObserver>>());
+            services.AddSingleton<ILivingroomObserver>(provider => lr);
 
             var so = new StorageObserver(sp.GetRequiredService<ILogger<StorageObserver>>(), sp.GetRequiredService<IEventAggregator>(), sp.GetRequiredService<ISensorDataService>());
             //TODO: Weird!! Find out why IStorageManager needs to be first????
@@ -112,13 +113,20 @@ namespace OHC.Server
                 app.UseExceptionHandler("/Home/Error");
             }
 
-            
+            app.UseForwardedHeaders(new ForwardedHeadersOptions
+            {
+                ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+            });
+
+            //app.UseAuthentication();
+
+
             var options = new BackgroundJobServerOptions { WorkerCount = Environment.ProcessorCount * 5 };
             app.UseHangfireServer(options);
 
             var list = new List<IDashboardAuthorizationFilter>() { new HangfireAuthFilter() };
             app.UseHangfireDashboard(options: new DashboardOptions() { Authorization = list });
-            //app.UseHangfireDashboard(); //Check this for authentication: https://stackoverflow.com/questions/41623551/asp-net-core-mvc-hangfire-custom-authentication
+            //Check this for authentication: https://stackoverflow.com/questions/41623551/asp-net-core-mvc-hangfire-custom-authentication
 
             app.UseStaticFiles();
 

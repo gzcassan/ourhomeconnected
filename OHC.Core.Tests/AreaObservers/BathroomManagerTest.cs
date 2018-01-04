@@ -1,16 +1,16 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OHC.Core.Infrastructure;
 using OHC.Core.MySensors;
-using OHC.Core.RoomManagers;
+using OHC.Core.AreaObservers;
 using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace OHC.Core.Tests.RoomManagers
+namespace OHC.Core.Tests.AreaObservers
 {
     [TestClass]
-    public class BathroomManagerTest
+    public class BathroomObserverTest
     {
         [TestMethod]
         public void TestHumidityLevelUpdate()

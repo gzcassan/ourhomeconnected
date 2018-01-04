@@ -4,9 +4,9 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace OHC.Core.RoomManagers
+namespace OHC.Core.AreaObservers
 {
-    public interface IBathroomManager
+    public interface IBathroomObserver
     {
         Task<bool> OnHumidityDataReceived(MySensorsDataMessage data);
     }

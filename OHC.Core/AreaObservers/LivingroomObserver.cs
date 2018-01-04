@@ -9,17 +9,17 @@ using Q42.HueApi;
 using System.Linq;
 using OHC.Core.Settings;
 
-namespace OHC.Core.RoomManagers
+namespace OHC.Core.AreaObservers
 {
-    public class LivingroomManager : ILivingroomManager
+    public class LivingroomObserver : ILivingroomObserver
     {
         private IEventAggregator eventAggregator;
-        private ILogger<LivingroomManager> logger;
+        private ILogger<LivingroomObserver> logger;
         private PhilipsHueSettings hueSettings;
         private bool alarmEnabled;
         private bool alarmActivated;
 
-        public LivingroomManager(PhilipsHueSettings hueSettings, IEventAggregator eventAggregator, ILogger<LivingroomManager> logger)
+        public LivingroomObserver(PhilipsHueSettings hueSettings, IEventAggregator eventAggregator, ILogger<LivingroomObserver> logger)
         {
             this.eventAggregator = eventAggregator;
             this.logger = logger;

@@ -18,8 +18,4 @@
     <ProjectReference Include="..\OHC.Core\OHC.Core.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="NewFolder\" />
-  </ItemGroup>
-
 </Project>

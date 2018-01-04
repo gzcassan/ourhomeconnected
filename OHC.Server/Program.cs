@@ -27,10 +27,19 @@ namespace OHC.Server
 
             var configuration = builder.Build();
 
-            Log.Logger = new LoggerConfiguration().ReadFrom.Configuration(configuration).CreateLogger();
+            Log.Logger = new LoggerConfiguration().ReadFrom.Configuration(configuration)
+                .MinimumLevel.Override("Microsoft", LogEventLevel.Warning) //move this to appsettings
+                .MinimumLevel.Override("System", LogEventLevel.Warning)
+                .CreateLogger();
 
             try
             {
+                Log.Information("Machine: {machine}", Environment.MachineName);
+                Log.Information("Platform: {platform}, version: {version}, 64bit: {64bit}", 
+                    Environment.OSVersion.Platform.ToString(), Environment.OSVersion.VersionString, Environment.Is64BitOperatingSystem.ToString());
+                Log.Information("Processor count: {processors}", Environment.ProcessorCount.ToString());
+                Log.Information("Current directory: {directory}", Environment.CurrentDirectory);
+                
                 Log.Information("Starting web host");
                 BuildWebHost(args).Run();
                 return 0;

@@ -4,7 +4,7 @@ using System.Text;
 
 namespace OHC.Core
 {
-    public enum Rooms
+    public enum Areas
     {
         LivingRoom,
         Kitchen,
@@ -17,10 +17,8 @@ namespace OHC.Core
         Landing,
         GuestRoom1,
         GuestRoom2,
-        UtilityRoom
-
-    }
-    class RoomManager
-    {
+        UtilityRoom,
+        Backyard,
+        Frontyard
     }
 }

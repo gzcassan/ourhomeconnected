@@ -10,15 +10,15 @@ using System.Linq.Expressions;
 using OHC.Storage;
 using Microsoft.Extensions.Logging;
 
-namespace OHC.Core.RoomManagers
+namespace OHC.Core.AreaObservers
 {
-    public class BathroomManager : IBathroomManager
-    {
+    public class BathroomObserver : IBathroomObserver
+    { 
         private IEventAggregator eventAggregator;
-        private ILogger<BathroomManager> logger;
+        private ILogger<BathroomObserver> logger;
         private static readonly int[] roomNodes = { 0 };
 
-        public BathroomManager(IEventAggregator eventAggregator, ILogger<BathroomManager> logger)
+        public BathroomObserver(IEventAggregator eventAggregator, ILogger<BathroomObserver> logger)
         {
             this.logger = logger;
             this.eventAggregator = eventAggregator;
