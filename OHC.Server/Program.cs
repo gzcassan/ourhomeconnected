@@ -33,28 +33,28 @@ namespace OHC.Server
             Log.Logger = new LoggerConfiguration().ReadFrom.Configuration(configuration)
                 .MinimumLevel.Override("Microsoft", LogEventLevel.Warning) //move this to appsettings
                 .MinimumLevel.Override("System", LogEventLevel.Warning)
-                 //.WriteTo.Email(new EmailConnectionInfo()
-                 //{
-                 //    FromEmail = configuration["Logging:Email:FromAddress"],
-                 //    EnableSsl = true,
-                 //    EmailSubject = "OurHomeConnected has something bad to tell you...",
-                 //    //IsBodyHtml = true,
-                 //    MailServer = configuration["Logging:Email:MailServer"],
-                 //    NetworkCredentials = new NetworkCredential(configuration["Logging:Email:Username"], configuration["Logging:Email:Password"]),
-                 //    Port = Int32.Parse(configuration["Logging:Email:Port"]),
-                 //    ToEmail = configuration["Logging:Email:ToAddress"]
-                 //})
+                 .WriteTo.Email(new EmailConnectionInfo()
+                 {
+                     FromEmail = configuration["Logging:Email:FromAddress"],
+                     EnableSsl = true,
+                     EmailSubject = "OurHomeConnected has something bad to tell you...",
+                     IsBodyHtml = true,
+                     MailServer = configuration["Logging:Email:MailServer"],
+                     NetworkCredentials = new NetworkCredential(configuration["Logging:Email:Username"], configuration["Logging:Email:Password"]),
+                     Port = Int32.Parse(configuration["Logging:Email:Port"]),
+                     ToEmail = configuration["Logging:Email:ToAddress"]
+                 }, restrictedToMinimumLevel: LogEventLevel.Warning)
                 .CreateLogger();
 
             try
             {
-                //Serilog.Debugging.SelfLog.Enable(x => Debug.WriteLine(x));
+                Serilog.Debugging.SelfLog.Enable(x => Debug.WriteLine(x));
                 Log.Information("Machine: {machine}", Environment.MachineName);
                 Log.Information("Platform: {platform}, version: {version}, 64bit: {64bit}", 
                     Environment.OSVersion.Platform.ToString(), Environment.OSVersion.VersionString, Environment.Is64BitOperatingSystem.ToString());
                 Log.Information("Processor count: {processors}", Environment.ProcessorCount.ToString());
                 Log.Information("Current directory: {directory}", Environment.CurrentDirectory);
-                
+
                 Log.Information("Starting web host");
                 BuildWebHost(args).Run();
                 return 0;
