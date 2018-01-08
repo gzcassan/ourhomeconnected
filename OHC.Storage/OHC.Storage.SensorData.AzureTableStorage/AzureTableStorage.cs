@@ -11,6 +11,7 @@ namespace OHC.Storage.SensorData.AzureTableStorage
     public class AzureTableStorage<T> : IAzureTableStorage<T>
         where T : ITableEntity, new()
     {
+        private bool TableExists = false;
 
         public AzureTableStorage(AzureTableSettings settings)
         {
@@ -132,7 +133,12 @@ namespace OHC.Storage.SensorData.AzureTableStorage
 
             //Table
             CloudTable table = tableClient.GetTableReference(this.settings.TableName);
-            await table.CreateIfNotExistsAsync();
+
+            if (!TableExists) //Will raise an exception if the table is removed while the server is running, but we can live with that.
+            {
+                await table.CreateIfNotExistsAsync();
+                TableExists = true;
+            }
 
             return table;
         }

@@ -6,40 +6,31 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Reactive.Linq;
 using MQTTnet.Client;
-using System.Diagnostics;
-using MQTTnet.Diagnostics;
+using Microsoft.Extensions.Logging;
 
-namespace OHC.MqttService
+namespace OHC.Core.Mqtt
 {
-    public class MqttClient : IMqttClient//, IHostedServer
+    public class MqttClient : IMqttClient
     {
-        private IManagedMqttClient client;
-        int test = 0;
+        IManagedMqttClient client;
+        ILogger<MqttClient> logger;
 
-        public MqttClient()
+        public MqttClient(ILogger<MqttClient> logger)
         {
-            MqttNetGlobalLogger.LogMessagePublished += (s, e) =>
-            {
-                var trace = $">> [{e.TraceMessage.Timestamp:O}] [{e.TraceMessage.ThreadId}] [{e.TraceMessage.Source}] [{e.TraceMessage.Level}]: {e.TraceMessage.Message}";
-                if (e.TraceMessage.Exception != null)
-                {
-                    trace += Environment.NewLine + e.TraceMessage.Exception.ToString();
-                }
-                Debug.WriteLine(trace);
-            };
+            this.logger = logger;
+            client = new MqttFactory().CreateManagedMqttClient();
+            client.ApplicationMessageReceived += Client_ApplicationMessageReceived;
         }
 
         private void Client_ApplicationMessageReceived(object sender, MqttApplicationMessageReceivedEventArgs e)
         {
-            test++;
-            Debug.WriteLine(e.ApplicationMessage.Topic);
+            logger.LogDebug("MESSAGE RECEIVED");
         }
 
         public Task SubscribeTopicAsync(string topic)
         {
-            client = new MqttFactory().CreateManagedMqttClient();
-            client.ApplicationMessageReceived += Client_ApplicationMessageReceived;
             return client.SubscribeAsync(new TopicFilterBuilder().WithTopic(topic).Build());
+            
         }
 
         public bool IsConnected
@@ -50,18 +41,18 @@ namespace OHC.MqttService
             }
         }
 
-        //public IObservable<(string,string)> OnDataReceived
-        //{
-        //    get
-        //    {
-        //        return Observable
-        //            .FromEventPattern<MqttApplicationMessageReceivedEventArgs>(
-        //            m => client.ApplicationMessageReceived += m,
-        //            m => client.ApplicationMessageReceived -= m)
-        //            .Select(x => 
-        //                (Topic: x.EventArgs.ApplicationMessage.Topic, Payload: System.Text.Encoding.Default.GetString(x.EventArgs.ApplicationMessage.Payload)));
-        //    }
-        //}
+        public IObservable<(string, string)> OnDataReceived
+        {
+            get
+            {
+                return Observable
+                    .FromEventPattern<MqttApplicationMessageReceivedEventArgs>(
+                    m => client.ApplicationMessageReceived += m,
+                    m => client.ApplicationMessageReceived -= m)
+                    .Select(x =>
+                        (Topic: x.EventArgs.ApplicationMessage.Topic, Payload: System.Text.Encoding.Default.GetString(x.EventArgs.ApplicationMessage.Payload)));
+            }
+        }
 
         public Task PublishAsync(string topic, string payload)
         {
@@ -75,6 +66,7 @@ namespace OHC.MqttService
             return client.PublishAsync(msg);
         }
 
+
         public async Task ConnectAsync(MqttSettings settings)
         {
             var options = new ManagedMqttClientOptionsBuilder()
@@ -85,7 +77,6 @@ namespace OHC.MqttService
                     .WithTcpServer(settings.Host)
                     .Build())
                 .Build();
-
             await client.StartAsync(options);
         }
 
@@ -96,6 +87,6 @@ namespace OHC.MqttService
 
 
 
-        
+
     }
 }

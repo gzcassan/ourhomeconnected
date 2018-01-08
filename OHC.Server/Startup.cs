@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.SpaServices.Webpack;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using OHC.MqttService;
+using OHC.Core.Mqtt;
 using OHC.Core.MySensorsGateway;
 using OHC.Core.Infrastructure;
 using OHC.Core.AreaObservers;
@@ -22,6 +22,7 @@ using OHC.Storage.Models;
 using OHC.Storage.Interfaces;
 using OHC.Core.Settings;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Extensions.Options;
 
 namespace OHC.Server
 {
@@ -48,51 +49,53 @@ namespace OHC.Server
         {
             services.AddHangfire(x => x.UseMemoryStorage());
 
-            services.AddTransient<IAzureTableStorage<SensorDataReading>>(factory =>
-            {
-                return new AzureTableStorage<SensorDataReading>(
-                    new AzureTableSettings(
-                        storageAccount: configuration["AzureStorage:StorageAccount"],
-                        storageKey: configuration["AzureStorage:StorageKey"],
-                        tableName: configuration["AzureStorage:TableName"]));
-            });
+            //https://andrewlock.net/reloading-strongly-typed-options-in-asp-net-core-1-1-0/
+            services.Configure<SchedulerSettings>(options => configuration.GetSection("Scheduler").Bind(options));
+            services.Configure<MqttSettings>(options => configuration.GetSection("MQTT").Bind(options));
+            services.Configure<PhilipsHueSettings>(options => configuration.GetSection("PhilipsHue").Bind(options));
+            services.Configure<LivingroomSettings>(options => configuration.GetSection("Areas:Livingroom").Bind(options));
 
-            services.AddTransient<ISensorDataService, SensorDataService>();
+            var sp = services.BuildServiceProvider();
 
-            services.AddSingleton<IEventAggregator, EventAggregator>();
+            //https://joonasw.net/view/aspnet-core-di-deep-dive
+            //services.AddTransient<IDataService, DataService>((ctx) =>
+            //{
+            //    IOtherService svc = ctx.GetService<IOtherService>();
+            //    //IOtherService svc = ctx.GetRequiredService<IOtherService>();
+            //    return new DataService(svc);
+            //});
+
+            sp = services.BuildServiceProvider();
+
+            var eventAggregator = new EventAggregator(sp.GetRequiredService<ILogger<EventAggregator>>());
+            services.AddSingleton<IEventAggregator>(prov => eventAggregator);
 
             services.AddSingleton<IMqttClient, MqttClient>();
 
-            var sp = services.BuildServiceProvider();
-            var gateway = new MySensorsGateway(sp.GetRequiredService<IMqttClient>(), sp.GetRequiredService<IEventAggregator>(), sp.GetRequiredService<ILogger<MySensorsGateway>>(),
-                new MqttSettings(
-                        host: configuration["MQTT:Host"],
-                        clientId: configuration["MQTT:ClientId"],
-                        username: configuration["MQTT:Username"],
-                        password: configuration["MQTT:Password"]));
+            services.Configure<AzureTableSettings>(options => configuration.GetSection("AzureTableStorage").Bind(options));
 
+            services.AddTransient<IAzureTableStorage<SensorDataReading>>(
+                provider => new AzureTableStorage<SensorDataReading>(sp.GetRequiredService<IOptions<AzureTableSettings>>().Value));
+            services.AddTransient<ISensorDataService, SensorDataService>();
+
+            sp = services.BuildServiceProvider();
+
+
+            var gateway = new MySensorsGateway(sp.GetRequiredService<IMqttClient>(), eventAggregator,
+                sp.GetRequiredService<ILogger<MySensorsGateway>>(), sp.GetRequiredService<IOptions<MqttSettings>>());
             services.AddSingleton<IHostedService>(provider => gateway);
             services.AddSingleton<IMySensorsGateway>(provider => gateway);
 
-            var bm = new BathroomObserver(sp.GetRequiredService<IEventAggregator>(), sp.GetRequiredService<ILogger<BathroomObserver>>());
-            services.AddSingleton<IBathroomObserver>(provider => bm);
-
-            var lr = new LivingroomObserver(
-                new PhilipsHueSettings(
-                    host: configuration["PhilipsHue:Host"],
-                    key: configuration["PhilipsHue:Key"],
-                    sunsetScene: configuration["PhilipsHue:SunsetScene"]),
-                sp.GetRequiredService<IEventAggregator>(), sp.GetRequiredService<ILogger<LivingroomObserver>>());
+            var lr = new LivingroomObserver(sp.GetRequiredService<IOptions<PhilipsHueSettings>>(), eventAggregator,
+                sp.GetRequiredService<ILogger<LivingroomObserver>>(), sp.GetRequiredService<ISensorDataService>(), sp.GetRequiredService<IOptions<LivingroomSettings>>());
             services.AddSingleton<ILivingroomObserver>(provider => lr);
+            services.AddSingleton<IHostedService>(provider => lr);
 
-            var so = new StorageObserver(sp.GetRequiredService<ILogger<StorageObserver>>(), sp.GetRequiredService<IEventAggregator>(), sp.GetRequiredService<ISensorDataService>());
-            //TODO: Weird!! Find out why IStorageManager needs to be first????
-            services.AddSingleton<IStorageObserver>(provider => so);
-            services.AddSingleton<IHostedService>(provider => so);
+            services.AddSingleton<IBathroomObserver, BathroomObserver>();
 
-            var ss = new SchedulerService(configuration["Scheduler:TimezoneId"], sp.GetRequiredService<IEventAggregator>(), sp.GetRequiredService<ILogger<SchedulerService>>());
-            services.AddTransient<IHostedService>(prov => ss);
-            services.AddTransient<ISchedulerService>(prov => ss);
+            var ss = new SchedulerService(sp.GetRequiredService<IOptions<SchedulerSettings>>().Value, eventAggregator, sp.GetRequiredService<ILogger<SchedulerService>>());
+            services.AddSingleton<IHostedService>(prov => ss);
+            services.AddSingleton<ISchedulerService>(prov => ss);
 
             services.AddMvc();
         }
@@ -121,12 +124,12 @@ namespace OHC.Server
             //app.UseAuthentication();
 
 
-            var options = new BackgroundJobServerOptions { WorkerCount = Environment.ProcessorCount * 5 };
+            var options = new BackgroundJobServerOptions { WorkerCount = Environment.ProcessorCount * 4 };
             app.UseHangfireServer(options);
 
             var list = new List<IDashboardAuthorizationFilter>() { new HangfireAuthFilter() };
             app.UseHangfireDashboard(options: new DashboardOptions() { Authorization = list });
-            //Check this for authentication: https://stackoverflow.com/questions/41623551/asp-net-core-mvc-hangfire-custom-authentication
+            //TODO: Check this for authentication: https://stackoverflow.com/questions/41623551/asp-net-core-mvc-hangfire-custom-authentication
 
             app.UseStaticFiles();
 

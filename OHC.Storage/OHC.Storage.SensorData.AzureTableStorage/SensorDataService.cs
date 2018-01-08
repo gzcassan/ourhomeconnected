@@ -16,7 +16,7 @@ namespace OHC.Storage.SensorData.AzureTableStorage
             this.repository = repository;
         }
 
-        public async Task AddSensorDataReading(SensorDataReading item)
+        public async Task SaveSensorDataReadingAsync(SensorDataReading item)
         {
                 await this.repository.Insert(item);
         }

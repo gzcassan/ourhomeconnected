@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace OHC.MqttService
+namespace OHC.Core.Mqtt
 {
     public interface IMqttClient
     {
@@ -12,7 +12,7 @@ namespace OHC.MqttService
         bool IsConnected { get; }
 
         Task SubscribeTopicAsync(string topic);
-        //IObservable<(string, string)> OnDataReceived { get; }
+        IObservable<(string, string)> OnDataReceived { get; }
         Task PublishAsync(string topic, string payload);
     }
 }

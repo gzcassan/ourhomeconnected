@@ -3,38 +3,71 @@ using OHC.Core.Events;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Q42.HueApi;
 using System.Linq;
 using OHC.Core.Settings;
+using OHC.Storage.Interfaces;
+using OHC.Core.MySensors;
+using Hangfire;
+using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Hosting;
+using System.Threading;
 
 namespace OHC.Core.AreaObservers
 {
-    public class LivingroomObserver : ILivingroomObserver
+    public class LivingroomObserver : ILivingroomObserver, IHostedService
     {
         private IEventAggregator eventAggregator;
+        private ISensorDataService sensorDataService;
         private ILogger<LivingroomObserver> logger;
         private PhilipsHueSettings hueSettings;
+        private LivingroomSettings livingroomSettings;
         private bool alarmEnabled;
         private bool alarmActivated;
+        private int[] areaNodes = { 0 };
 
-        public LivingroomObserver(PhilipsHueSettings hueSettings, IEventAggregator eventAggregator, ILogger<LivingroomObserver> logger)
+
+
+        public LivingroomObserver(IOptions<PhilipsHueSettings> hueSettings, IEventAggregator eventAggregator, ILogger<LivingroomObserver> logger, ISensorDataService sensorDataService, IOptions<LivingroomSettings> livingroomSettings)
         {
             this.eventAggregator = eventAggregator;
             this.logger = logger;
-            this.hueSettings = hueSettings;
-
-            this.eventAggregator.GetEvent<AlarmStatusEvent>().Subscribe((evt) => this.OnAlarmStatusChanged(evt));
-            this.eventAggregator.GetEvent<SunsetEvent>().Subscribe(async (evt) => await this.OnSunsetStart(evt));
+            this.hueSettings = hueSettings.Value;
+            this.sensorDataService = sensorDataService;
+            this.livingroomSettings = livingroomSettings.Value;
         }
 
-        private async Task OnSunsetStart(SunsetEvent evt)
+        public Task StartAsync(CancellationToken cancellationToken)
         {
+            logger.LogInformation("Starting LivingroomObserver service");
+            this.eventAggregator.GetEvent<AlarmStatusEvent>().Subscribe((evt) => this.OnAlarmStatusChanged(evt));
+            this.eventAggregator.GetEvent<SunsetEvent>().Subscribe((evt) => this.OnSunsetStart(evt));
+            this.eventAggregator.GetEvent<MySensorsDataMessage>()
+                //.Where(m => areaNodes.Contains(m.NodeId))
+                .Subscribe(message => OnSensorDataReceived(message));
+
+            return Task.CompletedTask;
+        }
+
+        public Task StopAsync(CancellationToken cancellationToken)
+        {
+            logger.LogInformation("Stopping LivingroomObserver service");
+            return Task.CompletedTask;
+        }
+
+        private void OnSunsetStart(SunsetEvent evt)
+        {
+            logger.LogDebug("Sunset (at {time}) started event received, switching on lights", evt.SunsetTime.ToString());
+            BackgroundJob.Schedule<ILivingroomObserver>((lo) => lo.SwitchOnLightForSunset(), TimeSpan.FromMinutes(livingroomSettings.SunsetLightOnDelayInMinutes));
+        }
+
+        public async Task SwitchOnLightForSunset()
+        { 
             if (!alarmActivated)
             {
-                logger.LogDebug("Sunset (at {time}) started event received, switching on lights", evt.SunsetTime.ToString());
-
                 try
                 {
                     var client = new LocalHueClient(hueSettings.Host);
@@ -59,7 +92,7 @@ namespace OHC.Core.AreaObservers
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, "Unable to switch on lights due to error");
+                    logger.LogError(ex, "Unable to switch on lights due to exception");
                 }
             }
             else
@@ -71,6 +104,25 @@ namespace OHC.Core.AreaObservers
         private void OnAlarmStatusChanged(AlarmStatusEvent ev)
         {
             this.alarmEnabled = ev.AlarmEnabled;
+        }
+
+        public void OnSensorDataReceived(MySensorsDataMessage message)
+        {
+            logger.LogDebug("OnSensorDataReceived is called");
+            BackgroundJob.Enqueue<ILivingroomObserver>(sm => sm.StoreSensorDataAsync(message));
+        }
+
+        public async Task StoreSensorDataAsync(MySensorsDataMessage message)
+        {
+            try
+            {
+                await sensorDataService.SaveSensorDataReadingAsync(message.ToStorage());
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Unable to store SensorData in cloud", message.ToEventDescription());
+                throw;
+            }
         }
     }
 }

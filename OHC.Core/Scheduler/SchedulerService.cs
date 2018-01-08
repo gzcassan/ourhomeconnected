@@ -11,6 +11,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Linq;
+using OHC.Core.Settings;
 
 namespace OHC.Core.Scheduler
 {
@@ -18,16 +19,14 @@ namespace OHC.Core.Scheduler
     { 
         private ILogger<SchedulerService> logger;
         private IEventAggregator eventAggregator;
-        private const double LATITUDE = 52.01001;
-        private const double LONGITUDE = 4.71072;
+        private SchedulerSettings settings;
 
-        public string TimezoneId { get; set; }
         
-        public SchedulerService(string timezoneId, IEventAggregator eventAggregator, ILogger<SchedulerService> logger)
+        public SchedulerService(SchedulerSettings settings, IEventAggregator eventAggregator, ILogger<SchedulerService> logger)
         {
             this.eventAggregator = eventAggregator;
             this.logger = logger;
-            TimezoneId = timezoneId;
+            this.settings = settings;
         }
 
         public Task StartAsync(CancellationToken cancellationToken)
@@ -37,7 +36,7 @@ namespace OHC.Core.Scheduler
 
             //we don't want to miss the sunset event if the recurring job is created after it's trigger time for today
             var now = DateTime.Now;
-            var sunset = CalculateSunset(now, LATITUDE, LONGITUDE);
+            var sunset = CalculateSunset(now, settings.Latitude, settings.Longitude);
             if (now > new DateTime(now.Year, now.Month, now.Day, 11, 55, 00) && now < sunset)
             {
                 logger.LogDebug("Server started after recurring job and before sunset, so a one-off job will be created for today.");
@@ -45,7 +44,7 @@ namespace OHC.Core.Scheduler
             }
             else
             {
-                logger.LogDebug("No need to create one-off job, because now: {now} < {1155} and later than sunset at {sunset}", 
+                logger.LogDebug("No need to create one-off job, because now: {now} is < {1155} or later than sunset at {sunset}", 
                     now.ToString(), new DateTime(now.Year, now.Month, now.Day, 11, 55, 00), sunset.ToString());
             }
             return Task.CompletedTask;
@@ -63,7 +62,7 @@ namespace OHC.Core.Scheduler
 
         public void CreateScheduledSunsetEventJob(DateTimeOffset date)
         {
-            var sunsetTime = CalculateSunset(date, LATITUDE, LONGITUDE);
+            var sunsetTime = CalculateSunset(date, settings.Latitude, settings.Longitude);
             logger.LogInformation("Scheduling new sunset event for {time}", sunsetTime.ToString());
             BackgroundJob.Schedule<ISchedulerService>((ss) => ss.TriggerSunsetEvent(sunsetTime), sunsetTime);
         }
@@ -83,7 +82,7 @@ namespace OHC.Core.Scheduler
         {
             try
             {
-                var tz = TimeZoneInfo.GetSystemTimeZones().Single(x => x.Id == TimezoneId);
+                var tz = TimeZoneInfo.GetSystemTimeZones().Single(x => x.Id == settings.TimezoneId);
                 logger.LogDebug("Timezone for sunset calculation: {timezone}", tz.DisplayName);
 
                 var time = new SolarTimes(date, lat, lng);
@@ -92,7 +91,7 @@ namespace OHC.Core.Scheduler
             }
             catch (InvalidOperationException ex)
             {
-                logger.LogCritical(ex, "Invalid timezone in settings: {timezone}", TimezoneId);
+                logger.LogCritical(ex, "Invalid timezone in settings: {timezone}", settings.TimezoneId);
                 throw;
             }
         }        

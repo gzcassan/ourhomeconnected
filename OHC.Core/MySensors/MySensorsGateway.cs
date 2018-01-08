@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Threading.Tasks;
 using System.Reactive.Linq;
-using OHC.MqttService;
 using System.Threading;
 using Microsoft.Extensions.Hosting;
 using OHC.Core.Infrastructure;
 using OHC.Core.MySensors;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using OHC.Core.Mqtt;
 
 namespace OHC.Core.MySensorsGateway
 {
@@ -16,23 +17,24 @@ namespace OHC.Core.MySensorsGateway
         //private static string TOPIC = "mysensors-out-test/#";
 
         private IMqttClient client;
-        private MqttSettings mqttSettings;
         private IEventAggregator eventAggregator;
         private ILogger logger;
+        MqttSettings mqttSettings;
 
-        public MySensorsGateway(IMqttClient client, IEventAggregator eventAggregator, ILogger<MySensorsGateway> logger, MqttSettings settings)
+        public MySensorsGateway(IMqttClient client, IEventAggregator eventAggregator, ILogger<MySensorsGateway> logger, IOptions<MqttSettings> mqttSettings)
         {
             this.client = client;
-            this.mqttSettings = settings;
             this.logger = logger;
             this.eventAggregator = eventAggregator;
+            this.mqttSettings = mqttSettings.Value;
 
             eventAggregator.GetEvent<MySensorsCommand>().Subscribe(async command => await SendMessage(command));
 
-            client.OnDataReceived.Subscribe(x =>
-            {
-                CreateAndPublishMessage(x.Item1, x.Item2);
-            });
+            client.OnDataReceived
+                .Subscribe(x =>
+                    {
+                        CreateAndPublishMessage(x.Item1, x.Item2);
+                    });
         }
 
         private void CreateAndPublishMessage(string topic, string payload)

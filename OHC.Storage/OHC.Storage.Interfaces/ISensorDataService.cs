@@ -9,7 +9,7 @@ namespace OHC.Storage.Interfaces
 
     public interface ISensorDataService
     {
-        Task AddSensorDataReading(SensorDataReading item);
+        Task SaveSensorDataReadingAsync(SensorDataReading item);
     }
 }
 

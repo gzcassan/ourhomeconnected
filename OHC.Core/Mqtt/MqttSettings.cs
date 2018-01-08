@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace OHC.MqttService
+namespace OHC.Core.Mqtt
 {
     public class MqttSettings
     {
