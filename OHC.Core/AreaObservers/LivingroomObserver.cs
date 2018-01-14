@@ -18,7 +18,7 @@ using System.Threading;
 
 namespace OHC.Core.AreaObservers
 {
-    public class LivingroomObserver : ILivingroomObserver, IHostedService
+    public class LivingroomObserver : ILivingroomObserver
     {
         private IEventAggregator eventAggregator;
         private ISensorDataService sensorDataService;
@@ -39,19 +39,19 @@ namespace OHC.Core.AreaObservers
             this.livingroomSettings = livingroomSettings.Value;
         }
 
-        public Task StartAsync(CancellationToken cancellationToken)
+        public Task StartAsync()
         {
             logger.LogInformation("Starting LivingroomObserver service");
             this.eventAggregator.GetEvent<AlarmStatusEvent>().Subscribe((evt) => this.OnAlarmStatusChanged(evt));
             this.eventAggregator.GetEvent<SunsetEvent>().Subscribe((evt) => this.OnSunsetStart(evt));
             this.eventAggregator.GetEvent<MySensorsDataMessage>()
-                //.Where(m => areaNodes.Contains(m.NodeId)) //TODO:Enable this
+                .Where(m => areaNodes.Contains(m.NodeId)) 
                 .Subscribe(message => OnSensorDataReceived(message));
 
             return Task.CompletedTask;
         }
 
-        public Task StopAsync(CancellationToken cancellationToken)
+        public Task StopAsync()
         {
             logger.LogInformation("Stopping LivingroomObserver service");
             return Task.CompletedTask;

@@ -80,22 +80,25 @@ namespace OHC.Server
 
             sp = services.BuildServiceProvider();
 
-
             var gateway = new MySensorsGateway(sp.GetRequiredService<IMqttClient>(), eventAggregator,
                 sp.GetRequiredService<ILogger<MySensorsGateway>>(), sp.GetRequiredService<IOptions<MqttSettings>>());
             services.AddSingleton<IHostedService>(provider => gateway);
             services.AddSingleton<IMySensorsGateway>(provider => gateway);
 
-            var lr = new LivingroomObserver(sp.GetRequiredService<IOptions<PhilipsHueSettings>>(), eventAggregator,
-                sp.GetRequiredService<ILogger<LivingroomObserver>>(), sp.GetRequiredService<ISensorDataService>(), sp.GetRequiredService<IOptions<LivingroomSettings>>());
-            services.AddSingleton<ILivingroomObserver>(provider => lr);
-            services.AddSingleton<IHostedService>(provider => lr);
 
+            services.AddSingleton<IHomeObserver, HomeObserver>();
             services.AddSingleton<IBathroomObserver, BathroomObserver>();
+            services.AddSingleton<ILivingroomObserver, LivingroomObserver>();
 
-            var ss = new SchedulerService(sp.GetRequiredService<IOptions<SchedulerSettings>>().Value, eventAggregator, sp.GetRequiredService<ILogger<SchedulerService>>());
+            sp = services.BuildServiceProvider();
+            
+            var ss = new OHCApplicationService(sp.GetRequiredService<IOptions<SchedulerSettings>>(), eventAggregator, sp.GetRequiredService<ILogger<OHCApplicationService>>(),
+                sp.GetRequiredService<IHomeObserver>(),
+                sp.GetRequiredService<ILivingroomObserver>(),
+                sp.GetRequiredService<IBathroomObserver>()
+                );
             services.AddSingleton<IHostedService>(prov => ss);
-            services.AddSingleton<ISchedulerService>(prov => ss);
+            services.AddSingleton<IOHCApplicationService>(prov => ss);
 
             services.AddMvc();
         }

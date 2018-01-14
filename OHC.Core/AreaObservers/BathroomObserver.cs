@@ -25,22 +25,6 @@ namespace OHC.Core.AreaObservers
             this.sensorDataService = sensorDataService;
             this.logger = logger;
             this.eventAggregator = eventAggregator;
-
-            /*
-            eventAggregator.GetEvent<MySensorsDataMessage>()
-                .Where(m => Array.Exists<int>(roomNodes, x => x == m.NodeId))
-                .Where(m => m.SensorDataType == SensorDataType.V_HUM)
-                .Subscribe(async message => await OnHumidityDataReceived(message));
-
-            eventAggregator.GetEvent<MySensorsDataMessage>()
-                .Where(m => Array.Exists<int>(roomNodes, x => x == m.NodeId))
-                .Where(m => m.SensorDataType == SensorDataType.V_TEMP)
-                .Subscribe(async message => await OnTempDataReceived(message));
-
-            eventAggregator.GetEvent<MySensorsPresentationMessage>()
-                .Where(m => Array.Exists<int>(roomNodes, x => x == m.NodeId))
-                .Subscribe(async message => await OnPresentationReceived(message));
-            */
         }
 
         private async Task OnPresentationReceived(MySensorsPresentationMessage message)
@@ -58,5 +42,16 @@ namespace OHC.Core.AreaObservers
             return await Task.FromResult(true);
         }
 
+        public Task StartAsync()
+        {
+            logger.LogInformation("Starting BathroomObserver service");
+            return Task.CompletedTask;
+        }
+
+        public Task StopAsync()
+        {
+            logger.LogInformation("Stopping BathroomObserver service");
+            return Task.CompletedTask;
+        }
     }
 }

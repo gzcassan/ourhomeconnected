@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace OHC.Core.AreaObservers
 {
-    public interface ILivingroomObserver
+    public interface ILivingroomObserver : IAreaObserver
     {
         Task SwitchOnLightForSunset();
         Task StoreSensorDataAsync(MySensorsDataMessage message);

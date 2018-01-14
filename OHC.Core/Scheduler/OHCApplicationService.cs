@@ -12,27 +12,48 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Linq;
 using OHC.Core.Settings;
+using OHC.Core.AreaObservers;
+using Microsoft.Extensions.Options;
 
 namespace OHC.Core.Scheduler
 {
-    public class SchedulerService : ISchedulerService, IHostedService
+    public class OHCApplicationService : IOHCApplicationService, IHostedService
     { 
-        private ILogger<SchedulerService> logger;
+        private ILogger<OHCApplicationService> logger;
         private IEventAggregator eventAggregator;
         private SchedulerSettings settings;
 
+        private IHomeObserver homeObserver;
+        private ILivingroomObserver livingroomObserver;
+        private IBathroomObserver bathroomObserver;
         
-        public SchedulerService(SchedulerSettings settings, IEventAggregator eventAggregator, ILogger<SchedulerService> logger)
+        public OHCApplicationService(IOptions<SchedulerSettings> settings, IEventAggregator eventAggregator, ILogger<OHCApplicationService> logger,
+            IHomeObserver homeObserver,
+            ILivingroomObserver livingroomObserver, 
+            IBathroomObserver bathroomObserver)
         {
             this.eventAggregator = eventAggregator;
             this.logger = logger;
-            this.settings = settings;
+            this.settings = settings.Value;
+
+            this.homeObserver = homeObserver;
+            this.livingroomObserver = livingroomObserver;
+            this.bathroomObserver = bathroomObserver;
         }
 
-        public Task StartAsync(CancellationToken cancellationToken)
+        public async Task StartAsync(CancellationToken cancellationToken)
         {
-            logger.LogInformation("Starting SchedulerService");
-            RecurringJob.AddOrUpdate<ISchedulerService>((ss) => ss.CreateRecurringSunsetEventJobForToday(), "55 11 * * *", TimeZoneInfo.Local);
+            logger.LogInformation("Starting HomeApplicationService");
+            await homeObserver.StartAsync();
+            await livingroomObserver.StartAsync();
+            await bathroomObserver.StartAsync();
+
+            CreateScheduledJobs();
+        }
+
+        private void CreateScheduledJobs()
+        {
+            RecurringJob.AddOrUpdate<IOHCApplicationService>((ss) => ss.CreateRecurringSunsetEventJobForToday(), "55 11 * * *", TimeZoneInfo.Local);
 
             //we don't want to miss the sunset event if the recurring job is created after it's trigger time for today
             var now = DateTime.Now;
@@ -44,16 +65,17 @@ namespace OHC.Core.Scheduler
             }
             else
             {
-                logger.LogDebug("No need to create one-off job, because now: {now} is < {1155} or later than sunset at {sunset}", 
+                logger.LogDebug("No need to create one-off job, because now: {now} is < {1155} or later than sunset at {sunset}",
                     now.ToString(), new DateTime(now.Year, now.Month, now.Day, 11, 55, 00), sunset.ToString());
             }
-            return Task.CompletedTask;
         }
 
-        public Task StopAsync(CancellationToken cancellationToken)
+        public async Task StopAsync(CancellationToken cancellationToken)
         {
-            logger.LogInformation("Stopping SchedulerService");
-            return Task.CompletedTask;
+            logger.LogInformation("Stopping HomeApplicationService");
+            await homeObserver.StopAsync();
+            await livingroomObserver.StopAsync();
+            await bathroomObserver.StopAsync();
         }
 
         public void CreateRecurringSunsetEventJobForToday()
@@ -65,7 +87,7 @@ namespace OHC.Core.Scheduler
         {
             var sunsetTime = CalculateSunset(date, settings.Latitude, settings.Longitude);
             logger.LogInformation("Scheduling new sunset event for {time}", sunsetTime.ToString());
-            BackgroundJob.Schedule<ISchedulerService>((ss) => ss.TriggerSunsetEvent(sunsetTime), sunsetTime);
+            BackgroundJob.Schedule<IOHCApplicationService>((ss) => ss.TriggerSunsetEvent(sunsetTime), sunsetTime);
         }
 
         public void TriggerSunsetEvent(DateTimeOffset sunsetTime)
