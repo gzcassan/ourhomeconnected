@@ -55,6 +55,7 @@ namespace OHC.Server
                 Log.Information("Processor count: {processors}", Environment.ProcessorCount.ToString());
                 Log.Information("Current directory: {directory}", Environment.CurrentDirectory);
 
+                Log.Warning("(Re)starting OHC Server");
                 Log.Information("Starting web host");
                 BuildWebHost(args).Run();
                 return 0;

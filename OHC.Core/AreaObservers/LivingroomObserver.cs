@@ -25,8 +25,7 @@ namespace OHC.Core.AreaObservers
         private ILogger<LivingroomObserver> logger;
         private PhilipsHueSettings hueSettings;
         private LivingroomSettings livingroomSettings;
-        private bool alarmEnabled;
-        private bool alarmActivated;
+        private AlarmStatus AlarmStatus;
         private int[] areaNodes = { 0 };
 
 
@@ -46,7 +45,7 @@ namespace OHC.Core.AreaObservers
             this.eventAggregator.GetEvent<AlarmStatusEvent>().Subscribe((evt) => this.OnAlarmStatusChanged(evt));
             this.eventAggregator.GetEvent<SunsetEvent>().Subscribe((evt) => this.OnSunsetStart(evt));
             this.eventAggregator.GetEvent<MySensorsDataMessage>()
-                //.Where(m => areaNodes.Contains(m.NodeId))
+                //.Where(m => areaNodes.Contains(m.NodeId)) //TODO:Enable this
                 .Subscribe(message => OnSensorDataReceived(message));
 
             return Task.CompletedTask;
@@ -66,7 +65,7 @@ namespace OHC.Core.AreaObservers
 
         public async Task SwitchOnLightForSunset()
         { 
-            if (!alarmActivated)
+            if (AlarmStatus != AlarmStatus.Activated)
             {
                 try
                 {
@@ -103,7 +102,7 @@ namespace OHC.Core.AreaObservers
 
         private void OnAlarmStatusChanged(AlarmStatusEvent ev)
         {
-            this.alarmEnabled = ev.AlarmEnabled;
+            this.AlarmStatus = ev.AlarmStatus;
         }
 
         public void OnSensorDataReceived(MySensorsDataMessage message)
@@ -112,6 +111,7 @@ namespace OHC.Core.AreaObservers
             BackgroundJob.Enqueue<ILivingroomObserver>(sm => sm.StoreSensorDataAsync(message));
         }
 
+        [AutomaticRetry(Attempts = 5)]
         public async Task StoreSensorDataAsync(MySensorsDataMessage message)
         {
             try

@@ -19,13 +19,25 @@ namespace OHC.Core.Mqtt
         {
             this.logger = logger;
             client = new MqttFactory().CreateManagedMqttClient();
-            client.ApplicationMessageReceived += Client_ApplicationMessageReceived;
+            //client.ApplicationMessageReceived += Client_ApplicationMessageReceived;
+            client.Connected += Client_Connected;
+            client.Disconnected += Client_Disconnected;
         }
 
-        private void Client_ApplicationMessageReceived(object sender, MqttApplicationMessageReceivedEventArgs e)
+        private void Client_Disconnected(object sender, MqttClientDisconnectedEventArgs e)
         {
-            logger.LogDebug("MESSAGE RECEIVED");
+            logger.LogWarning("Disconnected from MQTT server");
         }
+
+        private void Client_Connected(object sender, MqttClientConnectedEventArgs e)
+        {
+            logger.LogInformation("Connected to MQTT server");
+        }
+
+        //private void Client_ApplicationMessageReceived(object sender, MqttApplicationMessageReceivedEventArgs e)
+        //{
+        //    logger.LogDebug("MESSAGE RECEIVED");
+        //}
 
         public Task SubscribeTopicAsync(string topic)
         {
@@ -78,6 +90,21 @@ namespace OHC.Core.Mqtt
                     .Build())
                 .Build();
             await client.StartAsync(options);
+
+            var i = 0;
+            while(!IsConnected)
+            {
+                i++;
+                await Task.Delay(1000);
+
+                if (i > 9)
+                {
+                    logger.LogCritical("Unable to connect to MQTT server ({server}). Can't receive or send MySensors messages.", settings.Host);
+                    break;
+                }
+            }
+
+            //TODO: Check if we are connected
         }
 
         public Task DisconnectAsync()

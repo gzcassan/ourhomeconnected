@@ -1,5 +1,6 @@
 ﻿using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Auth;
+using Microsoft.WindowsAzure.Storage.RetryPolicies;
 using Microsoft.WindowsAzure.Storage.Table;
 using System;
 using System.Collections.Generic;
@@ -125,14 +126,22 @@ namespace OHC.Storage.SensorData.AzureTableStorage
         private async Task<CloudTable> GetTableAsync()
         {
             //Account
-            CloudStorageAccount storageAccount = new CloudStorageAccount(
-                new StorageCredentials(this.settings.StorageAccount, this.settings.StorageKey), true);
+            var storageAccount = new CloudStorageAccount(
+                new StorageCredentials(settings.StorageAccount, settings.StorageKey), useHttps: true);
 
             //Client
-            CloudTableClient tableClient = storageAccount.CreateCloudTableClient();
+            var tableClient = storageAccount.CreateCloudTableClient();
+
+            var requestOptions = new TableRequestOptions()
+            {
+                RetryPolicy = new ExponentialRetry(TimeSpan.FromSeconds(5), 3),
+                // Maximum execution time based on the business use case. 
+                MaximumExecutionTime = TimeSpan.FromMinutes(1)
+            };
+            tableClient.DefaultRequestOptions = requestOptions;
 
             //Table
-            CloudTable table = tableClient.GetTableReference(this.settings.TableName);
+            var table = tableClient.GetTableReference(this.settings.TableName);
 
             if (!TableExists) //Will raise an exception if the table is removed while the server is running, but we can live with that.
             {

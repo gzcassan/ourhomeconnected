@@ -8,17 +8,16 @@ namespace OHC.Core.Events
 {
     public class AlarmStatusEvent : IOhcEvent
     {
-        public bool AlarmEnabled { get; set; }
+        public AlarmStatus AlarmStatus { get; set; }
 
         public AlarmStatusEvent(bool enabled)
         {
-            AlarmEnabled = enabled;
+            AlarmStatus = AlarmStatus.Enabled;
         }
 
         public string ToEventDescription()
         {
-            var status = AlarmEnabled ? "enabled" : "disabled";
-            return $"Alarm status is now: {status}";
+            return $"Alarm status is now: {AlarmStatus.ToString()}";
         }
     }
 }

@@ -52,7 +52,8 @@ namespace OHC.Core.Scheduler
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            logger.LogInformation("Stopping SchedulerService");
+            return Task.CompletedTask;
         }
 
         public void CreateRecurringSunsetEventJobForToday()
