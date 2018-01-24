@@ -21,10 +21,14 @@ namespace OHC.Core.Tests.AreaObservers
             //var man = new BathroomManager(eventAggregator, );
 
             var result = true;// await man.OnHumidityDataReceived(message);
-            Assert.IsTrue(result);
+            Assert.IsTrue(result);            
+        }
 
-
-            
+        [TestMethod]
+        public void TestCurrentTemperature()
+        {
+            var room = new LivingroomObserver(null, null, null, null, null);
+            Parallel.For(0, 100000, (i) => room.OnTemperatureUpdate(new MySensorsDataMessage(0, 0, SensorDataType.V_TEMP, false, "15.0")));
         }
     }
 }

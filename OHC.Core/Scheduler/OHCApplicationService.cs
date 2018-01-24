@@ -26,11 +26,13 @@ namespace OHC.Core.Scheduler
         private IHomeObserver homeObserver;
         private ILivingroomObserver livingroomObserver;
         private IBathroomObserver bathroomObserver;
+        private IMasterBedroomObserver masterBedroomObserver;
         
         public OHCApplicationService(IOptions<SchedulerSettings> settings, IEventAggregator eventAggregator, ILogger<OHCApplicationService> logger,
             IHomeObserver homeObserver,
             ILivingroomObserver livingroomObserver, 
-            IBathroomObserver bathroomObserver)
+            IBathroomObserver bathroomObserver,
+            IMasterBedroomObserver masterBedroomObserver)
         {
             this.eventAggregator = eventAggregator;
             this.logger = logger;
@@ -39,6 +41,7 @@ namespace OHC.Core.Scheduler
             this.homeObserver = homeObserver;
             this.livingroomObserver = livingroomObserver;
             this.bathroomObserver = bathroomObserver;
+            this.masterBedroomObserver = masterBedroomObserver;
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
@@ -47,6 +50,7 @@ namespace OHC.Core.Scheduler
             await homeObserver.StartAsync();
             await livingroomObserver.StartAsync();
             await bathroomObserver.StartAsync();
+            await masterBedroomObserver.StartAsync();
 
             CreateScheduledJobs();
         }

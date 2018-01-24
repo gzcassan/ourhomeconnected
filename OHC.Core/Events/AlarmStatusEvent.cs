@@ -10,9 +10,9 @@ namespace OHC.Core.Events
     {
         public AlarmStatus AlarmStatus { get; set; }
 
-        public AlarmStatusEvent(bool enabled)
+        public AlarmStatusEvent(AlarmStatus status)
         {
-            AlarmStatus = AlarmStatus.Enabled;
+            AlarmStatus = status;
         }
 
         public string ToEventDescription()

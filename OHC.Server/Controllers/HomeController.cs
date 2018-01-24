@@ -1,23 +1,34 @@
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+using OHC.Core;
+using OHC.Core.Events;
+using OHC.Core.Infrastructure;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
 
 namespace OHC.Server.Controllers
 {
+    [Route("api/[controller]")]
     public class HomeController : Controller
     {
-        public IActionResult Index()
+        ILogger<HomeController> logger;
+        IEventAggregator eventAggregator;
+
+        public HomeController(IEventAggregator eventAggregator, ILogger<HomeController> logger)
         {
-            return View();
+            this.eventAggregator = eventAggregator;
+            this.logger = logger;
         }
 
-        public IActionResult Error()
+        [Authorize]
+        [HttpPut("status/goingtosleep")]
+        public void PostHomeStatus()
         {
-            ViewData["RequestId"] = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
-            return View();
+            var user = User.Identity.Name;
+            eventAggregator.Publish<HomeStatusEvent>(new HomeStatusEvent(HomeStatus.GoingToSleep));
         }
     }
 }

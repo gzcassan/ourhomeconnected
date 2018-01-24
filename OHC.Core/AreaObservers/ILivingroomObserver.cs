@@ -9,7 +9,9 @@ namespace OHC.Core.AreaObservers
 {
     public interface ILivingroomObserver : IAreaObserver
     {
+        Double GetCurrentTemperature();
         Task SwitchOnLightForSunset();
+        Task SwitchOffLights();
         Task StoreSensorDataAsync(MySensorsDataMessage message);
     }
 }

@@ -6,7 +6,6 @@ using System.Text;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Q42.HueApi;
 using System.Linq;
 using OHC.Core.Settings;
 using OHC.Storage.Interfaces;
@@ -15,6 +14,7 @@ using Hangfire;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Hosting;
 using System.Threading;
+using OHC.Drivers.PhilipsHue;
 
 namespace OHC.Core.AreaObservers
 {
@@ -23,18 +23,23 @@ namespace OHC.Core.AreaObservers
         private IEventAggregator eventAggregator;
         private ISensorDataService sensorDataService;
         private ILogger<LivingroomObserver> logger;
-        private PhilipsHueSettings hueSettings;
         private LivingroomSettings livingroomSettings;
+        private IPhilipsHueFactory philipsHueFactory;
         private AlarmStatus AlarmStatus;
         private int[] areaNodes = { 0 };
+        ReaderWriterLock temperatureLock = new ReaderWriterLock();
+
+        public double CurrentTemperature { get; private set; }
+        public double CurrentHumidity { get; private set; }
 
 
 
-        public LivingroomObserver(IOptions<PhilipsHueSettings> hueSettings, IEventAggregator eventAggregator, ILogger<LivingroomObserver> logger, ISensorDataService sensorDataService, IOptions<LivingroomSettings> livingroomSettings)
+        public LivingroomObserver(IPhilipsHueFactory philipsHueFactory, IEventAggregator eventAggregator, ILogger<LivingroomObserver> logger, 
+            ISensorDataService sensorDataService, IOptions<LivingroomSettings> livingroomSettings)
         {
             this.eventAggregator = eventAggregator;
+            this.philipsHueFactory = philipsHueFactory;
             this.logger = logger;
-            this.hueSettings = hueSettings.Value;
             this.sensorDataService = sensorDataService;
             this.livingroomSettings = livingroomSettings.Value;
         }
@@ -45,10 +50,54 @@ namespace OHC.Core.AreaObservers
             this.eventAggregator.GetEvent<AlarmStatusEvent>().Subscribe((evt) => this.OnAlarmStatusChanged(evt));
             this.eventAggregator.GetEvent<SunsetEvent>().Subscribe((evt) => this.OnSunsetStart(evt));
             this.eventAggregator.GetEvent<MySensorsDataMessage>()
-                .Where(m => areaNodes.Contains(m.NodeId)) 
+                .Where(m => m.SensorDataType == SensorDataType.V_TEMP)
+                .Subscribe(message => OnTemperatureUpdate(message));
+            this.eventAggregator.GetEvent<MySensorsDataMessage>()
+                .Where(m => areaNodes.Contains(m.NodeId))
                 .Subscribe(message => OnSensorDataReceived(message));
+            this.eventAggregator.GetEvent<HomeStatusEvent>()
+                .Where(ev => ev.Status == HomeStatus.GoingToSleep)
+                .Subscribe(ev => ScheduleOnGoingToSleep());
+
+            RecurringJob.AddOrUpdate<LivingroomObserver>((lo) => lo.SwitchOffLights(), "30 00 * * *", TimeZoneInfo.Local);
 
             return Task.CompletedTask;
+        }
+
+        public void ScheduleOnGoingToSleep()
+        {
+            logger.LogInformation("Going to sleep, switching off lights in {minutes} minutes", livingroomSettings.GoingToSleepDelayInMinutes);
+            BackgroundJob.Schedule<ILivingroomObserver>((lo) => lo.SwitchOffLights(),
+                DateTimeOffset.Now.Add(TimeSpan.FromMinutes(livingroomSettings.GoingToSleepDelayInMinutes)));
+        }
+
+        public async Task SwitchOffLights()
+        {
+            try
+            {
+                var hueClient = await philipsHueFactory.GetInstance();
+                await hueClient.SwitchOnOffAsync(false, "Living room");
+            }
+            catch (Exception ex)
+            {
+                logger.LogCritical(ex, "Unable to switch off lights");
+                //send notification
+            }
+        }
+
+        public void OnTemperatureUpdate(MySensorsDataMessage message)
+        {
+            temperatureLock.AcquireWriterLock(1000);
+            CurrentTemperature = Double.Parse(message.Payload);
+            temperatureLock.ReleaseWriterLock();
+        }
+
+        public Double GetCurrentTemperature()
+        {
+            temperatureLock.AcquireReaderLock(1000);
+            var temp = CurrentTemperature;
+            temperatureLock.ReleaseReaderLock();
+            return temp;
         }
 
         public Task StopAsync()
@@ -59,39 +108,22 @@ namespace OHC.Core.AreaObservers
 
         private void OnSunsetStart(SunsetEvent evt)
         {
-            logger.LogDebug("Sunset (at {time}) started event received, switching on lights", evt.SunsetTime.ToString());
+            logger.LogInformation("Sunset (at {time}) started event received, switching on lights", evt.SunsetTime.ToString());
             BackgroundJob.Schedule<ILivingroomObserver>((lo) => lo.SwitchOnLightForSunset(), TimeSpan.FromMinutes(livingroomSettings.SunsetLightOnDelayInMinutes));
         }
 
         public async Task SwitchOnLightForSunset()
-        { 
+        {
             if (AlarmStatus != AlarmStatus.Activated)
             {
+                var client = await philipsHueFactory.GetInstance();
                 try
                 {
-                    var client = new LocalHueClient(hueSettings.Host);
-                    client.Initialize(hueSettings.Key);
-
-                    var scenes = await client.GetScenesAsync();
-                    var sunset = scenes.Single(x => x.Name == hueSettings.SunsetScene);
-
-                    var groups = await client.GetGroupsAsync();
-                    var group = groups.Single(x => x.Name == "Living room");
-
-                    var result = await client.RecallSceneAsync(sunset.Id, group.Id);
-
-                    if (!result.HasErrors())
-                    {
-                        logger.LogInformation("Succesfully switched on lights.");
-                    }
-                    else
-                    {
-                        logger.LogError("Unable to switch on lights", result.Errors.FirstOrDefault().Error.Description);
-                    }
+                    await client.SwitchToSceneAsync(livingroomSettings.SunsetScene, "Living room");
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, "Unable to switch on lights due to exception");
+                    logger.LogError(ex, "Unable to switch to sunset scene {scene}", livingroomSettings.SunsetScene);
                 }
             }
             else

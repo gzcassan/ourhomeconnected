@@ -23,6 +23,10 @@ using OHC.Storage.Interfaces;
 using OHC.Core.Settings;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Options;
+using OHC.Server.Auth;
+using OHC.Drivers.PhilipsHue;
+using OHC.Server.Controllers;
+using OHC.Drivers.NefitEasy;
 
 namespace OHC.Server
 {
@@ -54,6 +58,8 @@ namespace OHC.Server
             services.Configure<MqttSettings>(options => configuration.GetSection("MQTT").Bind(options));
             services.Configure<PhilipsHueSettings>(options => configuration.GetSection("PhilipsHue").Bind(options));
             services.Configure<LivingroomSettings>(options => configuration.GetSection("Areas:Livingroom").Bind(options));
+            services.Configure<HomeSettings>(options => configuration.GetSection("Areas:Home").Bind(options));
+            services.Configure<NefitEasySettings>(options => configuration.GetSection("NefitEasy").Bind(options));
 
             var sp = services.BuildServiceProvider();
 
@@ -85,20 +91,41 @@ namespace OHC.Server
             services.AddSingleton<IHostedService>(provider => gateway);
             services.AddSingleton<IMySensorsGateway>(provider => gateway);
 
+            services.AddSingleton<INefitEasyClient>(provider => new NefitEasyClient(sp.GetRequiredService<IOptions<NefitEasySettings>>().Value));
 
+            services.AddSingleton<IPhilipsHueFactory>(
+                provider => new PhilipsHueFactory(sp.GetRequiredService<IOptions<PhilipsHueSettings>>().Value, sp.GetRequiredService<ILoggerFactory>()));
             services.AddSingleton<IHomeObserver, HomeObserver>();
             services.AddSingleton<IBathroomObserver, BathroomObserver>();
             services.AddSingleton<ILivingroomObserver, LivingroomObserver>();
+            services.AddSingleton<IMasterBedroomObserver, MasterBedroomObserver>();
 
             sp = services.BuildServiceProvider();
-            
+
             var ss = new OHCApplicationService(sp.GetRequiredService<IOptions<SchedulerSettings>>(), eventAggregator, sp.GetRequiredService<ILogger<OHCApplicationService>>(),
                 sp.GetRequiredService<IHomeObserver>(),
                 sp.GetRequiredService<ILivingroomObserver>(),
-                sp.GetRequiredService<IBathroomObserver>()
+                sp.GetRequiredService<IBathroomObserver>(),
+                sp.GetRequiredService<IMasterBedroomObserver>()
                 );
             services.AddSingleton<IHostedService>(prov => ss);
             services.AddSingleton<IOHCApplicationService>(prov => ss);
+
+            services.AddScoped<HomeController>(prov => new HomeController(eventAggregator, sp.GetRequiredService<ILogger<HomeController>>()));
+
+
+            services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = CustomAuthOptions.DefaultScheme;
+                options.DefaultChallengeScheme = CustomAuthOptions.DefaultScheme;
+            })
+            // Call custom authentication extension method
+            .AddCustomAuth(options =>
+            {
+                // Configure password for authentication
+                options.Account.Add("daniel", "C88F7B47006444A19B5E27D80344C600");
+                options.Account.Add("anca", "763C021BBF574004BE0F064294D699F5");
+            });
 
             services.AddMvc();
         }
@@ -136,15 +163,17 @@ namespace OHC.Server
 
             app.UseStaticFiles();
 
+            app.UseAuthentication();
+
             app.UseMvc(routes =>
             {
                 routes.MapRoute(
                     name: "default",
-                    template: "{controller=Home}/{action=Index}/{id?}");
+                    template: "{controller=Default}/{action=Index}/{id?}");
 
                 routes.MapSpaFallbackRoute(
                     name: "spa-fallback",
-                    defaults: new { controller = "Home", action = "Index" });
+                    defaults: new { controller = "Default", action = "Index" });
             });
         }
     }

@@ -7,12 +7,13 @@
   <ItemGroup>
     <PackageReference Include="HangFire.Core" Version="1.6.17" />
     <PackageReference Include="MQTTnet" Version="2.6.0" />
-    <PackageReference Include="Q42.HueApi" Version="3.5.3" />
     <PackageReference Include="SolarCalculator" Version="2.0.2" />
     <PackageReference Include="System.Reactive" Version="3.1.1" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\OHC.Drivers\OHC.Drivers.NefitEasy\OHC.Drivers.NefitEasy.csproj" />
+    <ProjectReference Include="..\OHC.Drivers\OHC.Drivers.PhilipsHue\OHC.Drivers.PhilipsHue.csproj" />
     <ProjectReference Include="..\OHC.Storage\OHC.Storage.Interfaces\OHC.Storage.Interfaces.csproj" />
     <ProjectReference Include="..\OHC.Storage\OHC.Storage.Models\OHC.Storage.Models.csproj" />
   </ItemGroup>
