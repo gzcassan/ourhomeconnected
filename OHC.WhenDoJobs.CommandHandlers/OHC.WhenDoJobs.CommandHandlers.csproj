@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OHC.Drivers\OHC.Drivers.NefitEasy\OHC.Drivers.NefitEasy.csproj" />
+    <ProjectReference Include="..\OHC.Drivers\OHC.Drivers.PhilipsHue\OHC.Drivers.PhilipsHue.csproj" />
+  </ItemGroup>
+
+</Project>
