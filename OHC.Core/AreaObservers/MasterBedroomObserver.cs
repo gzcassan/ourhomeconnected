@@ -27,8 +27,8 @@ namespace OHC.Core.AreaObservers
         {
             logger.LogInformation("Starting MasterBedroomObserver");
 
-            this.eventAggregator.GetEvent<HomeStatusEvent>()
-               .Where(ev => ev.Status == HomeStatus.GoingToSleep)
+            this.eventAggregator.GetEvent<ResidentsStatusEvent>()
+               .Where(ev => ev.Status == ResidentsStatus.GoingToSleep)
                .Subscribe(async ev => await OnGoingToSleep());
 
             return Task.CompletedTask;

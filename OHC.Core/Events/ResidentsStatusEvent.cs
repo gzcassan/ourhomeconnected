@@ -4,13 +4,13 @@ using System.Text;
 
 namespace OHC.Core.Events
 {
-    public class HomeStatusEvent : IOhcEvent
+    public class ResidentsStatusEvent : IOhcEvent
     {
-        public HomeStatus Status { get; set; }
+        public ResidentsStatus Status { get; set; }
 
-        public HomeStatusEvent() {}
+        public ResidentsStatusEvent() {}
 
-        public HomeStatusEvent(HomeStatus status)
+        public ResidentsStatusEvent(ResidentsStatus status)
         {
             Status = status;
         }

@@ -55,8 +55,8 @@ namespace OHC.Core.AreaObservers
             this.eventAggregator.GetEvent<MySensorsDataMessage>()
                 .Where(m => areaNodes.Contains(m.NodeId))
                 .Subscribe(message => OnSensorDataReceived(message));
-            this.eventAggregator.GetEvent<HomeStatusEvent>()
-                .Where(ev => ev.Status == HomeStatus.GoingToSleep)
+            this.eventAggregator.GetEvent<ResidentsStatusEvent>()
+                .Where(ev => ev.Status == ResidentsStatus.GoingToSleep)
                 .Subscribe(ev => ScheduleOnGoingToSleep());
 
             RecurringJob.AddOrUpdate<LivingroomObserver>((lo) => lo.SwitchOffLights(), "30 00 * * *", TimeZoneInfo.Local);

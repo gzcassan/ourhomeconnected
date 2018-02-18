@@ -30,8 +30,8 @@ namespace OHC.Core.AreaObservers
         public Task StartAsync()
         {
             logger.LogInformation("Starting HomeObserver");
-            this.eventAggregator.GetEvent<HomeStatusEvent>()
-                .Where(ev => ev.Status == HomeStatus.GoingToSleep)
+            this.eventAggregator.GetEvent<ResidentsStatusEvent>()
+                .Where(ev => ev.Status == ResidentsStatus.GoingToSleep)
                 .Subscribe(async ev => await OnGoingToSleep());
 
             return Task.CompletedTask;

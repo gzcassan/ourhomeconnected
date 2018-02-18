@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.27130.2024
+VisualStudioVersion = 15.0.27130.2027
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OHC.Server", "OHC.Server\OHC.Server.csproj", "{5DEE8A81-C0B0-4FAC-9C74-0420B29458F6}"
 EndProject
@@ -30,7 +30,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OHC.Storage.Models", "OHC.S
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OHC.Drivers.PhilipsHue", "OHC.Drivers\OHC.Drivers.PhilipsHue\OHC.Drivers.PhilipsHue.csproj", "{29F76EF2-0B0D-489C-983B-29B668E109A7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OHC.Drivers.NefitEasy", "OHC.Drivers\OHC.Drivers.NefitEasy\OHC.Drivers.NefitEasy.csproj", "{1C602AA0-2683-4C6A-BAF0-EDAD6B336B27}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OHC.Drivers.NefitEasy", "OHC.Drivers\OHC.Drivers.NefitEasy\OHC.Drivers.NefitEasy.csproj", "{1C602AA0-2683-4C6A-BAF0-EDAD6B336B27}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

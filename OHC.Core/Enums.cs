@@ -4,7 +4,7 @@ using System.Text;
 
 namespace OHC.Core
 {
-    public enum HomeStatus { GoingHome, ArrivingHome, GoingToSleep, WorkingHome, Vacation, WorkDay, Saturday, Sunday, Holiday }
+    public enum ResidentsStatus { GoingHome, ArrivingHome, GoingToSleep, WorkingHome, Vacation, WorkDay, Saturday, Sunday, Holiday }
 
     public enum AlarmStatus { Disabled, Enabled, Activated }
     

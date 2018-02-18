@@ -28,7 +28,7 @@ namespace OHC.Server.Controllers
         public void PostHomeStatus()
         {
             var user = User.Identity.Name;
-            eventAggregator.Publish<HomeStatusEvent>(new HomeStatusEvent(HomeStatus.GoingToSleep));
+            eventAggregator.Publish<ResidentsStatusEvent>(new ResidentsStatusEvent(ResidentsStatus.GoingToSleep));
         }
     }
 }
