@@ -4,7 +4,7 @@ using System.Text;
 
 namespace OHC.Core.Events
 {
-    public class ResidentsStatusEvent : IOhcEvent
+    public class ResidentsStatusEvent : IOHCEvent
     {
         public ResidentsStatus Status { get; set; }
 

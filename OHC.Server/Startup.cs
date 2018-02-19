@@ -27,6 +27,11 @@ using OHC.Server.Auth;
 using OHC.Drivers.PhilipsHue;
 using OHC.Server.Controllers;
 using OHC.Drivers.NefitEasy;
+using OHC.Core.Interfaces;
+using WhenDoJobs.Core.Interfaces;
+using WhenDoJobs.Core;
+using OHC.Core.Services;
+using OHC.WhenDoJobs.CommandHandlers;
 
 namespace OHC.Server
 {
@@ -51,15 +56,18 @@ namespace OHC.Server
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            //var hangfireStorage = new MemoryStorage();
             services.AddHangfire(x => x.UseMemoryStorage());
+            services.AddWhenDoJob(x => x.UseExternalHangfireServer());
 
             //https://andrewlock.net/reloading-strongly-typed-options-in-asp-net-core-1-1-0/
             services.Configure<SchedulerSettings>(options => configuration.GetSection("Scheduler").Bind(options));
             services.Configure<MqttSettings>(options => configuration.GetSection("MQTT").Bind(options));
             services.Configure<PhilipsHueSettings>(options => configuration.GetSection("PhilipsHue").Bind(options));
-            services.Configure<LivingroomSettings>(options => configuration.GetSection("Areas:Livingroom").Bind(options));
-            services.Configure<HomeSettings>(options => configuration.GetSection("Areas:Home").Bind(options));
+            //services.Configure<LivingroomSettings>(options => configuration.GetSection("Areas:Livingroom").Bind(options));
+            //services.Configure<HomeSettings>(options => configuration.GetSection("Areas:Home").Bind(options));
             services.Configure<NefitEasySettings>(options => configuration.GetSection("NefitEasy").Bind(options));
+            services.Configure<ApplicationSettings>(options => configuration.GetSection("Application").Bind(options));
 
             var sp = services.BuildServiceProvider();
 
@@ -73,10 +81,9 @@ namespace OHC.Server
 
             sp = services.BuildServiceProvider();
 
-            var eventAggregator = new EventAggregator(sp.GetRequiredService<ILogger<EventAggregator>>());
-            services.AddSingleton<IEventAggregator>(prov => eventAggregator);
-
             services.AddSingleton<IMqttClient, MqttClient>();
+            services.AddSingleton<IWhenDoEngine, WhenDoEngine>();
+            services.AddSingleton<IHostedService, WhenDoJobsService>();
 
             services.Configure<AzureTableSettings>(options => configuration.GetSection("AzureTableStorage").Bind(options));
 
@@ -86,32 +93,23 @@ namespace OHC.Server
 
             sp = services.BuildServiceProvider();
 
-            var gateway = new MySensorsGateway(sp.GetRequiredService<IMqttClient>(), eventAggregator,
-                sp.GetRequiredService<ILogger<MySensorsGateway>>(), sp.GetRequiredService<IOptions<MqttSettings>>());
-            services.AddSingleton<IHostedService>(provider => gateway);
-            services.AddSingleton<IMySensorsGateway>(provider => gateway);
+            //var gateway = new MySensorsGateway(sp.GetRequiredService<IMqttClient>(),
+            //    sp.GetRequiredService<ILogger<MySensorsGateway>>(), sp.GetRequiredService<IOptions<MqttSettings>>());
+            //services.AddSingleton<IHostedService>(provider => gateway);
+            //services.AddSingleton<IMySensorsGateway>(provider => gateway);
 
             services.AddSingleton<INefitEasyClient>(provider => new NefitEasyClient(sp.GetRequiredService<IOptions<NefitEasySettings>>().Value));
 
             services.AddSingleton<IPhilipsHueFactory>(
                 provider => new PhilipsHueFactory(sp.GetRequiredService<IOptions<PhilipsHueSettings>>().Value, sp.GetRequiredService<ILoggerFactory>()));
-            services.AddSingleton<IHomeObserver, HomeObserver>();
-            services.AddSingleton<IBathroomObserver, BathroomObserver>();
-            services.AddSingleton<ILivingroomObserver, LivingroomObserver>();
-            services.AddSingleton<IMasterBedroomObserver, MasterBedroomObserver>();
 
             sp = services.BuildServiceProvider();
 
-            var ss = new OHCApplicationService(sp.GetRequiredService<IOptions<SchedulerSettings>>(), eventAggregator, sp.GetRequiredService<ILogger<OHCApplicationService>>(),
-                sp.GetRequiredService<IHomeObserver>(),
-                sp.GetRequiredService<ILivingroomObserver>(),
-                sp.GetRequiredService<IBathroomObserver>(),
-                sp.GetRequiredService<IMasterBedroomObserver>()
-                );
-            services.AddSingleton<IHostedService>(prov => ss);
-            services.AddSingleton<IOHCApplicationService>(prov => ss);
+            //var ss = new OHCApplicationService(sp.GetRequiredService<IOptions<SchedulerSettings>>(), sp.GetRequiredService<ILogger<OHCApplicationService>>());
+            //services.AddSingleton<IHostedService>(prov => ss);
+            //services.AddSingleton<IOHCApplicationService>(prov => ss);
 
-            services.AddScoped<HomeController>(prov => new HomeController(eventAggregator, sp.GetRequiredService<ILogger<HomeController>>()));
+            //services.AddScoped<HomeController>(prov => new HomeController(sp.GetRequiredService<ILogger<HomeController>>()));
 
 
             services.AddAuthentication(options =>
@@ -133,6 +131,19 @@ namespace OHC.Server
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
+            var whenDo = app.ApplicationServices.GetRequiredService<IWhenDoEngine>();
+            whenDo.RegisterCommandHandler<PhilipsHueCommandHandler>("PhilipsHue");
+
+
+            var options = new BackgroundJobServerOptions { WorkerCount = Environment.ProcessorCount * 4 };
+            app.UseHangfireServer(options);
+
+            var list = new List<IDashboardAuthorizationFilter>() { new HangfireAuthFilter() };
+            app.UseHangfireDashboard(options: new DashboardOptions() { Authorization = list });
+            //TODO: Check this for authentication: https://stackoverflow.com/questions/41623551/asp-net-core-mvc-hangfire-custom-authentication
+            //app.UseAuthentication();
+
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -151,15 +162,7 @@ namespace OHC.Server
                 ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
             });
 
-            //app.UseAuthentication();
 
-
-            var options = new BackgroundJobServerOptions { WorkerCount = Environment.ProcessorCount * 4 };
-            app.UseHangfireServer(options);
-
-            var list = new List<IDashboardAuthorizationFilter>() { new HangfireAuthFilter() };
-            app.UseHangfireDashboard(options: new DashboardOptions() { Authorization = list });
-            //TODO: Check this for authentication: https://stackoverflow.com/questions/41623551/asp-net-core-mvc-hangfire-custom-authentication
 
             app.UseStaticFiles();
 

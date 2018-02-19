@@ -5,6 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\WhenDoJobs\WhenDoJobs.Core\WhenDoJobs.Core.csproj" />
     <ProjectReference Include="..\OHC.Drivers\OHC.Drivers.NefitEasy\OHC.Drivers.NefitEasy.csproj" />
     <ProjectReference Include="..\OHC.Drivers\OHC.Drivers.PhilipsHue\OHC.Drivers.PhilipsHue.csproj" />
   </ItemGroup>

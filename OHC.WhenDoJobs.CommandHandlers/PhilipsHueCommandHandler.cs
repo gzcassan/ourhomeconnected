@@ -1,10 +1,11 @@
 ﻿using OHC.Drivers.PhilipsHue;
 using System;
 using System.Threading.Tasks;
+using WhenDoJobs.Core.Interfaces;
 
 namespace OHC.WhenDoJobs.CommandHandlers
 {
-    public class PhilipsHueCommandHandler
+    public class PhilipsHueCommandHandler : IWhenDoCommandHandler
     {
         private IPhilipsHueClient client;
 

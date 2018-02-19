@@ -5,7 +5,7 @@ using System.Text;
 
 namespace OHC.Core.MySensors
 {
-    public abstract class MySensorsMessage : IOhcEvent
+    public abstract class MySensorsMessage : IOHCEvent
     {
         public int NodeId { get; set; }
         public int SensorId { get; set; }

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace OHC.Core.Events
 {
-    public class AlarmStatusEvent : IOhcEvent
+    public class AlarmStatusEvent : IOHCEvent
     {
         public AlarmStatus AlarmStatus { get; set; }
 

@@ -12,10 +12,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\WhenDoJobs\WhenDoJobs.Core\WhenDoJobs.Core.csproj" />
     <ProjectReference Include="..\OHC.Drivers\OHC.Drivers.NefitEasy\OHC.Drivers.NefitEasy.csproj" />
     <ProjectReference Include="..\OHC.Drivers\OHC.Drivers.PhilipsHue\OHC.Drivers.PhilipsHue.csproj" />
     <ProjectReference Include="..\OHC.Storage\OHC.Storage.Interfaces\OHC.Storage.Interfaces.csproj" />
     <ProjectReference Include="..\OHC.Storage\OHC.Storage.Models\OHC.Storage.Models.csproj" />
+    <ProjectReference Include="..\OHC.WhenDoJobs.CommandHandlers\OHC.WhenDoJobs.CommandHandlers.csproj" />
   </ItemGroup>
 
   <ItemGroup>

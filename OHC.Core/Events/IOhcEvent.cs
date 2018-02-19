@@ -4,7 +4,7 @@ using System.Text;
 
 namespace OHC.Core.Events
 {
-    public interface IOhcEvent
+    public interface IOHCEvent
     {
         string ToEventDescription();
     }

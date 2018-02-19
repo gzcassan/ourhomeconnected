@@ -18,13 +18,13 @@ namespace OHC.Core.Infrastructure
             this.logger = logger;
         }
 
-        public IObservable<TEvent> GetEvent<TEvent>() where TEvent : IOhcEvent
+        public IObservable<TEvent> GetEvent<TEvent>() where TEvent : IOHCEvent
         {
             //TODO: consider this when we get error shutdowns: https://github.com/ReactiveX/RxJava/issues/3870
             return subject.OfType<TEvent>().AsObservable();
         }
 
-        public void Publish<TEvent>(TEvent ohcEvent) where TEvent : IOhcEvent
+        public void Publish<TEvent>(TEvent ohcEvent) where TEvent : IOHCEvent
         {
             logger.LogInformation("Publishing event: {event}", ohcEvent.ToEventDescription());
             try

@@ -4,7 +4,7 @@ using System.Text;
 
 namespace OHC.Core.Events
 {
-    public class SunsetEvent : IOhcEvent
+    public class SunsetEvent : IOHCEvent
     {
         public DateTimeOffset SunsetTime { get; private set; }
 
