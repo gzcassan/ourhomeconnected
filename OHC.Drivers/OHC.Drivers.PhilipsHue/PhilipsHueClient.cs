@@ -23,7 +23,7 @@ namespace OHC.Drivers.PhilipsHue
             client = new LocalHueClient(hueSettings.Host);
         }
 
-        public async Task Initialize()
+        public async Task InitializeAsync()
         {
             client.Initialize(settings.Key);
             groups = await client.GetGroupsAsync();
@@ -39,17 +39,13 @@ namespace OHC.Drivers.PhilipsHue
                 var result = await client.SendGroupCommandAsync(command, group.Id);
 
                 if (!result.HasErrors())
-                {
-                    logger.LogInformation("Succesfully switched on lights.");
-                }
+                    logger.LogInformation("Succesfully switched {state} lights.", on ? "on" : "off");
                 else
-                {
-                    logger.LogError("Unable to switch on lights", result.Errors.FirstOrDefault().Error.Description);
-                }
+                    logger.LogError("Unable to switch lights", result.Errors.FirstOrDefault().Error.Description);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Unable to switch OFF lights due to exception");
+                logger.LogError(ex, "Unable to switch lights due to exception");
             }
 
         }
@@ -58,7 +54,6 @@ namespace OHC.Drivers.PhilipsHue
         {
                 var scenes = await client.GetScenesAsync();
                 var sunset = scenes.Single(x => x.Name == scene);
-
                 var group = groups.Single(x => x.Name == area);
 
                 var result = await client.RecallSceneAsync(sunset.Id, group.Id);

@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using OHC.Core;
 using OHC.Core.Events;
-using OHC.Core.Infrastructure;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,11 +14,9 @@ namespace OHC.Server.Controllers
     public class HomeController : Controller
     {
         ILogger<HomeController> logger;
-        IEventAggregator eventAggregator;
 
-        public HomeController(IEventAggregator eventAggregator, ILogger<HomeController> logger)
+        public HomeController(ILogger<HomeController> logger)
         {
-            this.eventAggregator = eventAggregator;
             this.logger = logger;
         }
 
@@ -28,7 +25,7 @@ namespace OHC.Server.Controllers
         public void PostHomeStatus()
         {
             var user = User.Identity.Name;
-            eventAggregator.Publish<ResidentsStatusEvent>(new ResidentsStatusEvent(ResidentsStatus.GoingToSleep));
+            //eventAggregator.Publish<ResidentsStatusEvent>(new ResidentsStatusEvent(ResidentsStatus.GoingToSleep));
         }
     }
 }

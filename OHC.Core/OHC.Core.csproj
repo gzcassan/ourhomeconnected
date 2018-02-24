@@ -17,7 +17,6 @@
     <ProjectReference Include="..\OHC.Drivers\OHC.Drivers.PhilipsHue\OHC.Drivers.PhilipsHue.csproj" />
     <ProjectReference Include="..\OHC.Storage\OHC.Storage.Interfaces\OHC.Storage.Interfaces.csproj" />
     <ProjectReference Include="..\OHC.Storage\OHC.Storage.Models\OHC.Storage.Models.csproj" />
-    <ProjectReference Include="..\OHC.WhenDoJobs.CommandHandlers\OHC.WhenDoJobs.CommandHandlers.csproj" />
   </ItemGroup>
 
   <ItemGroup>

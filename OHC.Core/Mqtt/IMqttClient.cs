@@ -7,7 +7,7 @@ namespace OHC.Core.Mqtt
 {
     public interface IMqttClient
     {
-        Task ConnectAsync(MqttSettings settings);
+        Task ConnectAsync();
         Task DisconnectAsync();
         bool IsConnected { get; }
 

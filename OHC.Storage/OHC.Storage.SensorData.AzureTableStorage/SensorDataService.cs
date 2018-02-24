@@ -9,16 +9,23 @@ namespace OHC.Storage.SensorData.AzureTableStorage
 {
     public class SensorDataService : ISensorDataService
     {
-        private readonly IAzureTableStorage<SensorDataReading> repository;
+        private readonly IAzureTableStorage<SensorDataMessage> repository;
 
-        public SensorDataService(IAzureTableStorage<SensorDataReading> repository)
+        public string Id => "AzureTableStorage";
+
+        public SensorDataService(IAzureTableStorage<SensorDataMessage> repository)
         {
             this.repository = repository;
         }
 
-        public async Task SaveSensorDataReadingAsync(SensorDataReading item)
+        public Task SaveAsync(SensorDataMessage message)
         {
-                await this.repository.Insert(item);
+            return repository.Insert(message);
+        }
+
+        public TObject GetCurrent<TType, TObject>()
+        {
+            throw new NotImplementedException();
         }
     }
 }

@@ -17,10 +17,10 @@ namespace OHC.Drivers.PhilipsHue
             this.loggerFactory = loggerFactory;
         }
 
-        public async Task<IPhilipsHueClient> GetInstance()
+        public async Task<IPhilipsHueClient> GetInstanceAsync()
         {
             var client = new PhilipsHueClient(settings, loggerFactory.CreateLogger<PhilipsHueClient>());
-            await client.Initialize();
+            await client.InitializeAsync();
             return client;
         }
     }

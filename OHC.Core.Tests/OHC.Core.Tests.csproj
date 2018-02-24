@@ -18,4 +18,8 @@
     <ProjectReference Include="..\OHC.Core\OHC.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Mocks\" />
+  </ItemGroup>
+
 </Project>

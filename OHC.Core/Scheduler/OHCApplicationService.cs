@@ -3,7 +3,6 @@ using Innovative.SolarCalculator;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OHC.Core.Events;
-using OHC.Core.Infrastructure;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
@@ -12,47 +11,27 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Linq;
 using OHC.Core.Settings;
-using OHC.Core.AreaObservers;
 using Microsoft.Extensions.Options;
 
 namespace OHC.Core.Scheduler
 {
     public class OHCApplicationService : IOHCApplicationService, IHostedService
-    { 
+    {
         private ILogger<OHCApplicationService> logger;
-        private IEventAggregator eventAggregator;
         private SchedulerSettings settings;
 
-        private IHomeObserver homeObserver;
-        private ILivingroomObserver livingroomObserver;
-        private IBathroomObserver bathroomObserver;
-        private IMasterBedroomObserver masterBedroomObserver;
-        
-        public OHCApplicationService(IOptions<SchedulerSettings> settings, IEventAggregator eventAggregator, ILogger<OHCApplicationService> logger,
-            IHomeObserver homeObserver,
-            ILivingroomObserver livingroomObserver, 
-            IBathroomObserver bathroomObserver,
-            IMasterBedroomObserver masterBedroomObserver)
+        public OHCApplicationService(IOptions<SchedulerSettings> settings, ILogger<OHCApplicationService> logger)
         {
-            this.eventAggregator = eventAggregator;
             this.logger = logger;
             this.settings = settings.Value;
-
-            this.homeObserver = homeObserver;
-            this.livingroomObserver = livingroomObserver;
-            this.bathroomObserver = bathroomObserver;
-            this.masterBedroomObserver = masterBedroomObserver;
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
             logger.LogInformation("Starting HomeApplicationService");
-            await homeObserver.StartAsync();
-            await livingroomObserver.StartAsync();
-            await bathroomObserver.StartAsync();
-            await masterBedroomObserver.StartAsync();
-
+            
             CreateScheduledJobs();
+            await Task.CompletedTask;
         }
 
         private void CreateScheduledJobs()
@@ -77,14 +56,12 @@ namespace OHC.Core.Scheduler
         public async Task StopAsync(CancellationToken cancellationToken)
         {
             logger.LogInformation("Stopping HomeApplicationService");
-            await homeObserver.StopAsync();
-            await livingroomObserver.StopAsync();
-            await bathroomObserver.StopAsync();
+            await Task.CompletedTask;
         }
 
         public void CreateRecurringSunsetEventJobForToday()
         {
-            CreateScheduledSunsetEventJob(DateTimeOffset.Now);            
+            CreateScheduledSunsetEventJob(DateTimeOffset.Now);
         }
 
         public void CreateScheduledSunsetEventJob(DateTimeOffset date)
@@ -96,14 +73,14 @@ namespace OHC.Core.Scheduler
 
         public void TriggerSunsetEvent(DateTimeOffset sunsetTime)
         {
-            eventAggregator.Publish<SunsetEvent>(new SunsetEvent(sunsetTime));
+         //   eventAggregator.Publish<SunsetEvent>(new SunsetEvent(sunsetTime));
         }
 
         public void CleanupLogFiles()
         {
             //TODO: get logging folder and clean up
         }
-           
+
 
         private DateTimeOffset CalculateSunset(DateTimeOffset date, double lat, double lng)
         {
@@ -121,6 +98,6 @@ namespace OHC.Core.Scheduler
                 logger.LogCritical(ex, "Invalid timezone in settings: {timezone}", settings.TimezoneId);
                 throw;
             }
-        }        
+        }
     }
 }

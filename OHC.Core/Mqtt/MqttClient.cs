@@ -14,10 +14,12 @@ namespace OHC.Core.Mqtt
     {
         IManagedMqttClient client;
         ILogger<MqttClient> logger;
+        MqttSettings settings;
 
-        public MqttClient(ILogger<MqttClient> logger)
+        public MqttClient(ILogger<MqttClient> logger, MqttSettings settings)
         {
             this.logger = logger;
+            this.settings = settings;
             client = new MqttFactory().CreateManagedMqttClient();
             //client.ApplicationMessageReceived += Client_ApplicationMessageReceived;
             client.Connected += Client_Connected;
@@ -79,7 +81,7 @@ namespace OHC.Core.Mqtt
         }
 
 
-        public async Task ConnectAsync(MqttSettings settings)
+        public async Task ConnectAsync()
         {
             var options = new ManagedMqttClientOptionsBuilder()
                 .WithAutoReconnectDelay(TimeSpan.FromSeconds(5))

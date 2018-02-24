@@ -6,7 +6,7 @@ using System.Text;
 
 namespace OHC.Storage.Models
 {
-    public class SensorDataReading : ITableEntity //TODO: Consider this solution: http://www.amithegde.com/2015/06/decoupling-tableentity-while-using-azure-storage.html
+    public class SensorDataMessage : ITableEntity //TODO: Consider this solution: http://www.amithegde.com/2015/06/decoupling-tableentity-while-using-azure-storage.html
     {
         public string PartitionKey { get; set; }
         public string RowKey { get; set; }

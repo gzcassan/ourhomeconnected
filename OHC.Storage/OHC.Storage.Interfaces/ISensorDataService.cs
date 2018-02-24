@@ -9,7 +9,9 @@ namespace OHC.Storage.Interfaces
 
     public interface ISensorDataService
     {
-        Task SaveSensorDataReadingAsync(SensorDataReading item);
+        string Id { get; }
+        Task SaveAsync(SensorDataMessage message);
+        TObject GetCurrent<TType, TObject>();
     }
 }
 

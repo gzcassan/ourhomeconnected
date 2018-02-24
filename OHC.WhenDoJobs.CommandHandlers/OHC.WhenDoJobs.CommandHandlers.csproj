@@ -6,8 +6,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\WhenDoJobs\WhenDoJobs.Core\WhenDoJobs.Core.csproj" />
+    <ProjectReference Include="..\OHC.Core\OHC.Core.csproj" />
     <ProjectReference Include="..\OHC.Drivers\OHC.Drivers.NefitEasy\OHC.Drivers.NefitEasy.csproj" />
     <ProjectReference Include="..\OHC.Drivers\OHC.Drivers.PhilipsHue\OHC.Drivers.PhilipsHue.csproj" />
+    <ProjectReference Include="..\OHC.Storage\OHC.Storage.Models\OHC.Storage.Models.csproj" />
   </ItemGroup>
 
 </Project>

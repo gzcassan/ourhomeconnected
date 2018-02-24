@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using WhenDoJobs.Core.Interfaces;
 
 namespace OHC.Core.MySensors
 {
-    public class MySensorsDataMessage : MySensorsMessage
+    public class MySensorsDataMessage : MySensorsMessage, IWhenDoMessageContext
     {
         public SensorDataType SensorDataType { get; set; }
 

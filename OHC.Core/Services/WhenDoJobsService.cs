@@ -16,16 +16,18 @@ namespace OHC.Core.Services
 {
     public class WhenDoJobsService : HostedService, IWhenDoJobsService
     {
-        private IWhenDoEngine whenDoJobs;
+        private IWhenDoEngine whenDoJobEngine;
         private ApplicationSettings settings;
         private ILogger<WhenDoJobsService> logger;
 
-        public WhenDoJobsService(IWhenDoEngine whenDo, IOptions<ApplicationSettings> settings, ILogger<WhenDoJobsService> logger)
+        public WhenDoJobsService(IWhenDoEngine whenDoJobEngine, IOptions<ApplicationSettings> settings, ILogger<WhenDoJobsService> logger)
         {
             this.logger = logger;
-            this.whenDoJobs = whenDo;
+            this.whenDoJobEngine = whenDoJobEngine;
             this.settings = settings.Value;
             ConfigureJobConfigWatcher();
+            RegisterJobs();
+
         }
 
         private void ConfigureJobConfigWatcher()
@@ -49,23 +51,30 @@ namespace OHC.Core.Services
         private void OnWhenDoJobChanged(object source, FileSystemEventArgs e)
         {
             RegisterJobs();
-            logger.LogInformation("Job {job} in folder {folder} added/changed/deleted, re-registered jobs.", e.Name, settings.WhenDoJobsPath);
+            logger.LogInformation("Job {job} in folder {folder} was added/changed/deleted, re-registered jobs.", e.Name, settings.WhenDoJobsPath);
         }
 
         private void RegisterJobs()
         {
-            whenDoJobs.ClearJobRegister();
+            whenDoJobEngine.ClearJobRegister();
             var files = Directory.EnumerateFiles(settings.WhenDoJobsPath);
             foreach (var file in files)
             {
-                var job = JsonConvert.DeserializeObject<JobDefinition>(File.ReadAllText(file));
-                whenDoJobs.RegisterJob(job);
+                var job = JsonConvert.DeserializeObject<JobDefinition>(File.ReadAllText(file)); //TODO: do we need exclusive lock?
+                try
+                {
+                    whenDoJobEngine.RegisterJob(job);
+                }
+                catch(Exception ex)
+                {
+                    logger.LogError(ex, $"Unable to register job {file}");
+                }
             }
         }
 
         protected override Task ExecuteAsync(CancellationToken cancellationToken)
         {
-            return whenDoJobs.RunAsync(cancellationToken);
+            return whenDoJobEngine.RunAsync(cancellationToken);
         }
     }
 }

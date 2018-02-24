@@ -7,6 +7,6 @@ namespace OHC.Drivers.PhilipsHue
 {
     public interface IPhilipsHueFactory
     {
-        Task<IPhilipsHueClient> GetInstance();
+        Task<IPhilipsHueClient> GetInstanceAsync();
     }
 }

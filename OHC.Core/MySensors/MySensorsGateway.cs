@@ -3,11 +3,11 @@ using System.Threading.Tasks;
 using System.Reactive.Linq;
 using System.Threading;
 using Microsoft.Extensions.Hosting;
-using OHC.Core.Infrastructure;
 using OHC.Core.MySensors;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OHC.Core.Mqtt;
+using WhenDoJobs.Core.Interfaces;
 
 namespace OHC.Core.MySensorsGateway
 {
@@ -17,18 +17,14 @@ namespace OHC.Core.MySensorsGateway
         //private static string TOPIC = "mysensors-out-test/#";
 
         private IMqttClient client;
-        private IEventAggregator eventAggregator;
         private ILogger logger;
-        MqttSettings mqttSettings;
+        private IWhenDoQueueProvider queueProvider;
 
-        public MySensorsGateway(IMqttClient client, IEventAggregator eventAggregator, ILogger<MySensorsGateway> logger, IOptions<MqttSettings> mqttSettings)
+        public MySensorsGateway(IMqttClient client, IWhenDoQueueProvider queueProvider, ILogger<MySensorsGateway> logger)
         {
             this.client = client;
             this.logger = logger;
-            this.eventAggregator = eventAggregator;
-            this.mqttSettings = mqttSettings.Value;
-
-            eventAggregator.GetEvent<MySensorsCommand>().Subscribe(async command => await SendMessage(command));
+            this.queueProvider = queueProvider;
 
             client.OnDataReceived
                 .Subscribe(x =>
@@ -53,13 +49,13 @@ namespace OHC.Core.MySensorsGateway
                 var type = Int32.Parse(fields[5]);
                 var sensorDataType = (SensorDataType) type;
                 var message = new MySensorsDataMessage(nodeId, sensorId, sensorDataType, ack, payload);
-                eventAggregator.Publish<MySensorsDataMessage>(message);
+                queueProvider.EnqueueMessage(message);
             }
             else if(messageType == MessageType.C_PRESENTATION)
             {
                 var sensorType = (SensorType)Int32.Parse(fields[5]);
                 var message = new MySensorsPresentationMessage(nodeId, sensorId, sensorType, ack, payload);
-                eventAggregator.Publish<MySensorsPresentationMessage>(message);
+                //TODO: Not sure what to do with these...
             }
         }
 
@@ -101,7 +97,7 @@ namespace OHC.Core.MySensorsGateway
         private async Task ConnectAsync()
         {
             logger.LogInformation("Connecting to MQTT");
-            await client.ConnectAsync(mqttSettings);
+            await client.ConnectAsync();
         }
 
         public Task StopAsync(CancellationToken cancellationToken)
