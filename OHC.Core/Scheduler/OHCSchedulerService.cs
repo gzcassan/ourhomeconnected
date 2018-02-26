@@ -12,35 +12,50 @@ using System.Threading.Tasks;
 using System.Linq;
 using OHC.Core.Settings;
 using Microsoft.Extensions.Options;
+using WhenDoJobs.Core.Interfaces;
+using OHC.Core.Interfaces;
 
 namespace OHC.Core.Scheduler
 {
-    public class OHCApplicationService : IOHCApplicationService, IHostedService
+    public class OHCSchedulerService : IOHCSchedulerService, IHostedService
     {
-        private ILogger<OHCApplicationService> logger;
+        private ILogger<OHCSchedulerService> logger;
         private SchedulerSettings settings;
+        private IWhenDoQueueProvider queueProvider;
 
-        public OHCApplicationService(IOptions<SchedulerSettings> settings, ILogger<OHCApplicationService> logger)
+        public OHCSchedulerService(IWhenDoQueueProvider queueProvider, IOptions<SchedulerSettings> settings, ILogger<OHCSchedulerService> logger)
         {
             this.logger = logger;
             this.settings = settings.Value;
+            this.queueProvider = queueProvider;
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
             logger.LogInformation("Starting HomeApplicationService");
-            
-            CreateScheduledJobs();
+
+            CreateSunsetEventJob();
+            SwitchOffLightsDuringNightJob();
+
             await Task.CompletedTask;
         }
 
-        private void CreateScheduledJobs()
+        private void SwitchOffLightsDuringNightJob()
         {
-            RecurringJob.AddOrUpdate<IOHCApplicationService>((ss) => ss.CreateRecurringSunsetEventJobForToday(), "55 11 * * *", TimeZoneInfo.Local);
+            var cron = Cron.Daily(settings.NightTime.Hours, settings.NightTime.Minutes);
+            RecurringJob.AddOrUpdate<IWhenDoQueueProvider>(queue => queue.EnqueueMessage(new TimeEvent(TimeEventType.Night, settings.NightTime)), cron, TimeZoneInfo.Local);
+        }
+
+
+        private void CreateSunsetEventJob()
+        {
+            var cron = Cron.Daily(11, 55);
+            RecurringJob.AddOrUpdate<IOHCSchedulerService>((ss) => ss.CreateSunsetEventJobForToday(), cron, TimeZoneInfo.Local);
 
             //we don't want to miss the sunset event if the recurring job is created after it's trigger time for today
             var now = DateTime.Now;
-            var sunset = CalculateSunset(now, settings.Latitude, settings.Longitude);
+
+            var sunset = OHCHelpers.CalculateSunset(now, settings.TimezoneId, settings.Latitude, settings.Longitude);
             if (now > new DateTime(now.Year, now.Month, now.Day, 11, 55, 00) && now < sunset)
             {
                 logger.LogDebug("Server started after recurring job and before sunset, so a one-off job will be created for today.");
@@ -59,43 +74,28 @@ namespace OHC.Core.Scheduler
             await Task.CompletedTask;
         }
 
-        public void CreateRecurringSunsetEventJobForToday()
+        public void CreateSunsetEventJobForToday()
         {
             CreateScheduledSunsetEventJob(DateTimeOffset.Now);
         }
 
         public void CreateScheduledSunsetEventJob(DateTimeOffset date)
         {
-            var sunsetTime = CalculateSunset(date, settings.Latitude, settings.Longitude);
-            logger.LogInformation("Scheduling new sunset event for {time}", sunsetTime.ToString());
-            BackgroundJob.Schedule<IOHCApplicationService>((ss) => ss.TriggerSunsetEvent(sunsetTime), sunsetTime);
-        }
-
-        public void TriggerSunsetEvent(DateTimeOffset sunsetTime)
-        {
-         //   eventAggregator.Publish<SunsetEvent>(new SunsetEvent(sunsetTime));
-        }
-
-        public void CleanupLogFiles()
-        {
-            //TODO: get logging folder and clean up
-        }
-
-
-        private DateTimeOffset CalculateSunset(DateTimeOffset date, double lat, double lng)
-        {
             try
             {
-                var tz = TimeZoneInfo.GetSystemTimeZones().Single(x => x.Id == settings.TimezoneId);
-                logger.LogDebug("Timezone for sunset calculation: {timezone}", tz.DisplayName);
-
-                var time = new SolarTimes(date, lat, lng);
-                DateTime sunrise = TimeZoneInfo.ConvertTimeFromUtc(time.Sunset.ToUniversalTime(), tz);
-                return (DateTimeOffset)sunrise;
+                var sunsetTime = OHCHelpers.CalculateSunset(date, settings.TimezoneId, settings.Latitude, settings.Longitude);
+                logger.LogInformation("Scheduling new sunset event for {time}", sunsetTime.ToString());
+                BackgroundJob.Schedule<IWhenDoQueueProvider>(queue => queue.EnqueueMessage(new TimeEvent(TimeEventType.Sunset, sunsetTime.TimeOfDay)), sunsetTime);
+                
             }
-            catch (InvalidOperationException ex)
+            catch(InvalidOperationException ex)
             {
-                logger.LogCritical(ex, "Invalid timezone in settings: {timezone}", settings.TimezoneId);
+                logger.LogError(ex, "Invalid timezone in settings: {timezone}", settings.TimezoneId);
+                throw;
+            }
+            catch(Exception ex)
+            {
+                logger.LogError(ex, "Error scheduling sunset event.");
                 throw;
             }
         }

@@ -28,6 +28,10 @@ using OHC.Core.Services;
 using OHC.WhenDoJobs.CommandHandlers;
 using OHC.Storage.Models;
 using WhenDoJobs.Core.Services;
+using Hangfire.Common;
+using Newtonsoft.Json;
+using OHC.Core.Scheduler;
+using OHC.Core.Interfaces;
 
 namespace OHC.Server
 {
@@ -52,7 +56,6 @@ namespace OHC.Server
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            //var hangfireStorage = new MemoryStorage();
             services.AddHangfire(x => x.UseMemoryStorage());
             services.AddWhenDoJob(x => x.UseExternalHangfireServer());
 
@@ -63,19 +66,7 @@ namespace OHC.Server
             services.Configure<NefitEasySettings>(options => configuration.GetSection("NefitEasy").Bind(options));
             services.Configure<ApplicationSettings>(options => configuration.GetSection("Application").Bind(options));
             services.Configure<AzureTableSettings>(options => configuration.GetSection("AzureTableStorage").Bind(options));
-
-
             var sp = services.BuildServiceProvider();
-
-            //https://joonasw.net/view/aspnet-core-di-deep-dive
-            //services.AddTransient<IDataService, DataService>((ctx) =>
-            //{
-            //    IOtherService svc = ctx.GetService<IOtherService>();
-            //    //IOtherService svc = ctx.GetRequiredService<IOtherService>();
-            //    return new DataService(svc);
-            //});
-
-            sp = services.BuildServiceProvider();
 
             services.AddSingleton<IMqttClient>(
                 provider => new MqttClient(sp.GetRequiredService<ILogger<MqttClient>>(), sp.GetRequiredService<IOptions<MqttSettings>>().Value));
@@ -93,14 +84,15 @@ namespace OHC.Server
                 provider => new PhilipsHueFactory(sp.GetRequiredService<IOptions<PhilipsHueSettings>>().Value, sp.GetRequiredService<ILoggerFactory>()));
 
             services.AddTransient<PhilipsHueCommandHandler>();
+            services.AddTransient<NefitHeatingCommandHandler>();
+            services.AddTransient<SensorMessagePersistenceCommandHandler>();
+
             sp = services.BuildServiceProvider();
 
-            //var ss = new OHCApplicationService(sp.GetRequiredService<IOptions<SchedulerSettings>>(), sp.GetRequiredService<ILogger<OHCApplicationService>>());
-            //services.AddSingleton<IHostedService>(prov => ss);
-            //services.AddSingleton<IOHCApplicationService>(prov => ss);
-
-            //services.AddScoped<HomeController>(prov => new HomeController(sp.GetRequiredService<ILogger<HomeController>>()));
-
+            var app = new OHCSchedulerService(sp.GetRequiredService<IWhenDoQueueProvider>(), 
+                sp.GetRequiredService<IOptions<SchedulerSettings>>(), sp.GetRequiredService<ILogger<OHCSchedulerService>>());
+            services.AddSingleton<IHostedService>(prov => app);
+            services.AddSingleton<IOHCSchedulerService>(prov => app);
 
             services.AddAuthentication(options =>
             {
@@ -122,11 +114,18 @@ namespace OHC.Server
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, IServiceProvider serviceProvider)
         {
             GlobalConfiguration.Configuration.UseActivator(new HangfireJobActivator(serviceProvider));
+            JobHelper.SetSerializerSettings(new JsonSerializerSettings
+            {
+                TypeNameHandling = TypeNameHandling.All
+            });
             app.UseAuthentication();
 
             var whenDo = app.ApplicationServices.GetRequiredService<IWhenDoEngine>();
             whenDo.RegisterCommandHandler<PhilipsHueCommandHandler>("PhilipsHue");
+            whenDo.RegisterCommandHandler<SensorMessagePersistenceCommandHandler>("SensorMessagePersistence");
+            whenDo.RegisterCommandHandler<NefitHeatingCommandHandler>("NefitHeating");
 
+            JobStorage.Current = new MemoryStorage();
             var options = new BackgroundJobServerOptions { WorkerCount = Environment.ProcessorCount * 4 };
             app.UseHangfireServer(options);            
 

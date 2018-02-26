@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.27130.2027
+VisualStudioVersion = 15.0.27130.2036
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OHC.Server", "OHC.Server\OHC.Server.csproj", "{5DEE8A81-C0B0-4FAC-9C74-0420B29458F6}"
 EndProject
@@ -34,7 +34,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OHC.Drivers.NefitEasy", "OH
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WhenDoJobs.Core", "..\WhenDoJobs\WhenDoJobs.Core\WhenDoJobs.Core.csproj", "{21E215F3-3309-4729-BC89-55D3A52D4E6C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OHC.WhenDoJobs.CommandHandlers", "OHC.WhenDoJobs.CommandHandlers\OHC.WhenDoJobs.CommandHandlers.csproj", "{E8F08E50-10C5-43E9-A97A-046682B94DBF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OHC.WhenDoJobs.CommandHandlers", "OHC.WhenDoJobs.CommandHandlers\OHC.WhenDoJobs.CommandHandlers.csproj", "{E8F08E50-10C5-43E9-A97A-046682B94DBF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

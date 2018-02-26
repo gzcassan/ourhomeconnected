@@ -9,5 +9,8 @@ namespace OHC.Core.Settings
         public string TimezoneId { get; set; }
         public double Latitude { get; set; }
         public double Longitude { get; set; }
+
+        public TimeSpan NightTime { get; set; }
+        public TimeSpan BedTime { get; set; }
     }
 }

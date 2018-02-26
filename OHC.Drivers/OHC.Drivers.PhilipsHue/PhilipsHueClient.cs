@@ -59,13 +59,9 @@ namespace OHC.Drivers.PhilipsHue
                 var result = await client.RecallSceneAsync(sunset.Id, group.Id);
 
                 if (!result.HasErrors())
-                {
-                    logger.LogInformation("Succesfully switched on lights.");
-                }
+                    logger.LogInformation($"Succesfully switched on scene {scene} in area {area}.");
                 else
-                {
                     logger.LogError("Unable to switch to scene {scene}, error: {error}", scene, result.Errors.FirstOrDefault().Error.Description);
-                }
         }
     }
 }

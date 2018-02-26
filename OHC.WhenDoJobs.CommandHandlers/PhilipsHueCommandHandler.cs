@@ -26,7 +26,7 @@ namespace OHC.WhenDoJobs.CommandHandlers
             await client.SwitchOnOffAsync(false, area);
         }
 
-        public async Task SwitchOnScene(string scene, string area)
+        public async Task SwitchOnSceneAsync(string scene, string area)
         {
             var client = await factory.GetInstanceAsync();
             await client.SwitchToSceneAsync(scene, area);
