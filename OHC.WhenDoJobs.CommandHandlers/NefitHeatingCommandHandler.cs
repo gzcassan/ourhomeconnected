@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading.Tasks;
 using WhenDoJobs.Core.Interfaces;
 
 namespace OHC.WhenDoJobs.CommandHandlers
@@ -15,9 +16,9 @@ namespace OHC.WhenDoJobs.CommandHandlers
             this.client = client;
         }
 
-        public void SetTemperatureAsync(double temperature)
+        public Task SetTemperatureAsync(double temperature)
         {
-            client.SetScheduleOverruleTemp(temperature);
+            return client.SetScheduleOverruleTempAsync(temperature);
         }
     }
 }

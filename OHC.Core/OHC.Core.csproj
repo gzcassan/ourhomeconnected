@@ -6,7 +6,8 @@
 
   <ItemGroup>
     <PackageReference Include="HangFire.Core" Version="1.6.17" />
-    <PackageReference Include="MQTTnet" Version="2.6.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Hosting.Abstractions" Version="2.0.2" />
+    <PackageReference Include="MQTTnet" Version="2.7.1" />
     <PackageReference Include="SolarCalculator" Version="2.0.2" />
     <PackageReference Include="System.Reactive" Version="3.1.1" />
   </ItemGroup>
@@ -20,9 +21,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="Microsoft.Extensions.Hosting.Abstractions">
-      <HintPath>..\..\..\Program Files\dotnet\sdk\NuGetFallbackFolder\microsoft.extensions.hosting.abstractions\2.0.1\lib\netstandard2.0\Microsoft.Extensions.Hosting.Abstractions.dll</HintPath>
-    </Reference>
     <Reference Include="Microsoft.Extensions.Logging.Abstractions">
       <HintPath>..\..\..\Program Files\dotnet\sdk\NuGetFallbackFolder\microsoft.extensions.logging.abstractions\2.0.0\lib\netstandard2.0\Microsoft.Extensions.Logging.Abstractions.dll</HintPath>
     </Reference>

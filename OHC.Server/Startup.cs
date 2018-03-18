@@ -30,8 +30,6 @@ using OHC.Storage.Models;
 using WhenDoJobs.Core.Services;
 using Hangfire.Common;
 using Newtonsoft.Json;
-using OHC.Core.Scheduler;
-using OHC.Core.Interfaces;
 
 namespace OHC.Server
 {
@@ -60,7 +58,7 @@ namespace OHC.Server
             services.AddWhenDoJob(x => x.UseExternalHangfireServer());
 
             //https://andrewlock.net/reloading-strongly-typed-options-in-asp-net-core-1-1-0/
-            services.Configure<SchedulerSettings>(options => configuration.GetSection("Scheduler").Bind(options));
+            services.Configure<LocationSettings>(options => configuration.GetSection("Scheduler").Bind(options));
             services.Configure<MqttSettings>(options => configuration.GetSection("MQTT").Bind(options));
             services.Configure<PhilipsHueSettings>(options => configuration.GetSection("PhilipsHue").Bind(options));
             services.Configure<NefitEasySettings>(options => configuration.GetSection("NefitEasy").Bind(options));
@@ -87,25 +85,21 @@ namespace OHC.Server
             services.AddTransient<NefitHeatingCommandHandler>();
             services.AddTransient<SensorMessagePersistenceCommandHandler>();
 
-            sp = services.BuildServiceProvider();
+            //sp = services.BuildServiceProvider();
 
-            var app = new OHCSchedulerService(sp.GetRequiredService<IWhenDoQueueProvider>(), 
-                sp.GetRequiredService<IOptions<SchedulerSettings>>(), sp.GetRequiredService<ILogger<OHCSchedulerService>>());
-            services.AddSingleton<IHostedService>(prov => app);
-            services.AddSingleton<IOHCSchedulerService>(prov => app);
+
 
             services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = CustomAuthOptions.DefaultScheme;
                 options.DefaultChallengeScheme = CustomAuthOptions.DefaultScheme;
+            })
+            .AddCustomAuth(options =>
+            {
+                // Configure password for authentication
+                options.Account.Add("daniel", "C88F7B47006444A19B5E27D80344C600");
+                options.Account.Add("anca", "763C021BBF574004BE0F064294D699F5");
             });
-            // Call custom authentication extension method
-            //.AddCustomAuth(options =>
-            //{
-            //    // Configure password for authentication
-            //    options.Account.Add("daniel", "C88F7B47006444A19B5E27D80344C600");
-            //    options.Account.Add("anca", "763C021BBF574004BE0F064294D699F5");
-            //});
 
             services.AddMvc();
         }
@@ -118,7 +112,6 @@ namespace OHC.Server
             {
                 TypeNameHandling = TypeNameHandling.All
             });
-            app.UseAuthentication();
 
             var whenDo = app.ApplicationServices.GetRequiredService<IWhenDoEngine>();
             whenDo.RegisterCommandHandler<PhilipsHueCommandHandler>("PhilipsHue");
@@ -126,13 +119,12 @@ namespace OHC.Server
             whenDo.RegisterCommandHandler<NefitHeatingCommandHandler>("NefitHeating");
 
             JobStorage.Current = new MemoryStorage();
-            var options = new BackgroundJobServerOptions { WorkerCount = Environment.ProcessorCount * 4 };
+            var options = new BackgroundJobServerOptions { WorkerCount = Environment.ProcessorCount * 3 };
             app.UseHangfireServer(options);            
 
             var list = new List<IDashboardAuthorizationFilter>() { new HangfireAuthFilter() };
             app.UseHangfireDashboard(options: new DashboardOptions() { Authorization = list });
             //TODO: Check this for authentication: https://stackoverflow.com/questions/41623551/asp-net-core-mvc-hangfire-custom-authentication
-            //app.UseAuthentication();
 
 
             if (env.IsDevelopment())

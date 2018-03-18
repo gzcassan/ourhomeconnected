@@ -15,7 +15,7 @@ namespace OHC.Drivers.NefitEasy
             this.settings = settings;
         }
 
-        public async Task SetScheduleOverruleTemp(double temp, int durationInMinutes = 0)
+        public async Task SetScheduleOverruleTempAsync(double temp, int durationInMinutes = 0)
         {
             var httpClient = new HttpClient();
             httpClient.BaseAddress = new Uri($"http://{settings.Host}:{settings.Port}/bridge/heatingCircuits/hc1/manualTempOverride/");

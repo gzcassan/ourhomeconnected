@@ -5,7 +5,7 @@ using WhenDoJobs.Core.Interfaces;
 
 namespace OHC.Core.MySensors
 {
-    public class MySensorsDataMessage : MySensorsMessage, IWhenDoMessageContext
+    public class MySensorsDataMessage : MySensorsMessage, IWhenDoMessage
     {
         public SensorDataType SensorDataType { get; set; }
 

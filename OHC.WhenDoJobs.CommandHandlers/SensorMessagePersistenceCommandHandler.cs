@@ -23,7 +23,7 @@ namespace OHC.WhenDoJobs.CommandHandlers
             this.logger = logger;
         }
 
-        public async Task SaveAsync(IWhenDoMessageContext context)
+        public async Task SaveAsync(IWhenDoMessage context)
         {
             try
             {

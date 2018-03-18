@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using OHC.Core.Interfaces;
 using OHC.Core.Settings;
+using OHC.Core.WhenDoProviders;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -26,8 +27,6 @@ namespace OHC.Core.Services
             this.whenDoJobEngine = whenDoJobEngine;
             this.settings = settings.Value;
             ConfigureJobConfigWatcher();
-            RegisterJobs();
-
         }
 
         private void ConfigureJobConfigWatcher()
@@ -50,20 +49,20 @@ namespace OHC.Core.Services
         // Define the event handlers.
         private void OnWhenDoJobChanged(object source, FileSystemEventArgs e)
         {
-            RegisterJobs();
-            logger.LogInformation("Job {job} in folder {folder} was added/changed/deleted, re-registered jobs.", e.Name, settings.WhenDoJobsPath);
+            logger.LogInformation("Job {job} in folder {folder} was added/changed/deleted, will try to re-register job.", e.Name, settings.WhenDoJobsPath);
+            RegisterJobsAsync().Wait();
         }
 
-        private void RegisterJobs()
+        private async Task RegisterJobsAsync()
         {
-            whenDoJobEngine.ClearJobRegister();
-            var files = Directory.EnumerateFiles(settings.WhenDoJobsPath);
+            await whenDoJobEngine.ClearJobsAsync();
+            var files = Directory.EnumerateFiles(settings.WhenDoJobsPath, "*.json");
             foreach (var file in files)
             {
-                var job = JsonConvert.DeserializeObject<JobDefinition>(File.ReadAllText(file)); //TODO: do we need exclusive lock?
                 try
                 {
-                    whenDoJobEngine.RegisterJob(job);
+                    var job = JsonConvert.DeserializeObject<JobDefinition>(File.ReadAllText(file)); //TODO: do we need exclusive lock?
+                    await whenDoJobEngine.RegisterJobAsync(job);
                 }
                 catch(Exception ex)
                 {
@@ -72,9 +71,11 @@ namespace OHC.Core.Services
             }
         }
 
-        protected override Task ExecuteAsync(CancellationToken cancellationToken)
+        protected override async Task ExecuteAsync(CancellationToken cancellationToken)
         {
-            return whenDoJobEngine.RunAsync(cancellationToken);
+            whenDoJobEngine.RegisterExpressionProvider("DateTime", typeof(OHCDateTimeProvider));
+            await RegisterJobsAsync();
+            await whenDoJobEngine.RunAsync(cancellationToken);
         }
     }
 }

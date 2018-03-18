@@ -7,6 +7,6 @@ namespace OHC.Drivers.NefitEasy
 {
     public interface INefitEasyClient
     {
-        Task SetScheduleOverruleTemp(double temp, int durationInMinutes = 0);
+        Task SetScheduleOverruleTempAsync(double temp, int durationInMinutes = 0);
     }
 }

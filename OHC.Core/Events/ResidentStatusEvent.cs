@@ -1,23 +1,24 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using WhenDoJobs.Core.Interfaces;
 
 namespace OHC.Core.Events
 {
-    public class ResidentsStatusEvent : IOHCEvent
+    public class ResidentStatusEvent : IOHCEvent, IWhenDoMessage
     {
         public ResidentsStatus Status { get; set; }
 
-        public ResidentsStatusEvent() {}
+        public ResidentStatusEvent() {}
 
-        public ResidentsStatusEvent(ResidentsStatus status)
+        public ResidentStatusEvent(ResidentsStatus status)
         {
             Status = status;
         }
 
         public string ToEventDescription()
         {
-            return $"Home status set to {Status.ToString()}";
+            return $"Resident status set to {Status.ToString()}";
         }
     }
 }

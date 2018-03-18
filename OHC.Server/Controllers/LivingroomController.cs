@@ -10,15 +10,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace OHC.Server.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/livingroom")]
     public class LivingroomController : Controller
     {
 
-        public LivingroomController()
-        {
-            
-        }
-        // GET: api/<controller>
         [Authorize]
         [HttpGet("temperature")]
         public Double GetCurrentTemperature()
