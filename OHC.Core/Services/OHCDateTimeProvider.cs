@@ -6,7 +6,7 @@ using System.Text;
 using WhenDoJobs.Core.Interfaces;
 using WhenDoJobs.Core.Providers;
 
-namespace OHC.Core.WhenDoProviders
+namespace OHC.Core.Services
 {
     public class OHCDateTimeProvider : IWhenDoExpressionProvider, IDateTimeProvider
     {
@@ -22,7 +22,5 @@ namespace OHC.Core.WhenDoProviders
         public TimeSpan CurrentTime => DateTimeOffset.Now.TimeOfDay;
         public DateTimeOffset CurrentDate => DateTimeOffset.Now.Date;
         public DateTimeOffset Now => DateTimeOffset.Now;
-
-
     }
 }

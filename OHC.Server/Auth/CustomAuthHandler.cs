@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
@@ -21,6 +22,8 @@ namespace OHC.Server.Auth
 
         protected override Task<AuthenticateResult> HandleAuthenticateAsync()
         {
+            if (!Request.Path.StartsWithSegments(PathString.FromUriComponent("/api")))
+                return Task.FromResult(AuthenticateResult.NoResult());
             var username = Request.Query.FirstOrDefault(x => x.Key == "user").Value;
             var secretKey = Request.Query.FirstOrDefault(x => x.Key == "key").Value;
 
